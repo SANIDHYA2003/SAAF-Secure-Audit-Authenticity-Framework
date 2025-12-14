@@ -89,31 +89,51 @@ if (process.env.NODE_ENV !== 'test') {
 
 // ==================== DATABASE ====================
 
+// ==================== DATABASE ====================
+
+// Cache the database connection
+let cachedDb = null;
+
 const connectDB = async () => {
+    // If we have a cached connection, reuse it
+    if (cachedDb && mongoose.connection.readyState === 1) {
+        return cachedDb;
+    }
+
     try {
         const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/verifychain';
 
-        await mongoose.connect(uri, {
-            // Modern Mongoose doesn't need these, but keeping for compatibility
-        });
+        // Optimizations for serverless
+        const opts = {
+            bufferCommands: false, // Don't buffer commands if driver is not connected
+            maxPoolSize: 10,       // Limit pool size in serverless
+            serverSelectionTimeoutMS: 5000, // Fail fast if can't connect
+            socketTimeoutMS: 45000, // Close sockets after inactivity
+        };
 
+        console.log('Connecting to MongoDB...');
+        const conn = await mongoose.connect(uri, opts);
+
+        cachedDb = conn;
         console.log('✅ MongoDB connected');
 
         // Connection event handlers
         mongoose.connection.on('error', (err) => {
             console.error('MongoDB connection error:', err);
+            cachedDb = null;
         });
 
         mongoose.connection.on('disconnected', () => {
-            console.warn('MongoDB disconnected. Attempting to reconnect...');
+            console.warn('MongoDB disconnected');
+            cachedDb = null;
         });
+
+        return conn;
 
     } catch (error) {
         console.error('❌ MongoDB connection failed:', error.message);
-        // In development, continue without DB for testing
-        if (process.env.NODE_ENV === 'production') {
-            process.exit(1);
-        }
+        cachedDb = null;
+        throw error;
     }
 };
 
@@ -284,7 +304,26 @@ if (!isVercel) {
     startServer();
 } else {
     // For Vercel: Connect to DB on first request (lazy loading)
-    connectDB().catch(err => console.error('DB connection error:', err));
+    // We export the app, but we also need a middleware to ensure connection on every request
+    app.use(async (req, res, next) => {
+        // Skip DB connection for Health Check to identify if it's app or DB issue
+        if (req.path === '/health' || req.path === '/api/v1/health') {
+            // Check if DB happens to be connected but don't force it
+            return next();
+        }
+
+        try {
+            await connectDB();
+            next();
+        } catch (error) {
+            console.error("Critical DB Error:", error);
+            res.status(500).json({
+                success: false,
+                error: 'Database connection failed',
+                details: process.env.NODE_ENV === 'development' ? error.message : undefined
+            });
+        }
+    });
 }
 
 export default app;
