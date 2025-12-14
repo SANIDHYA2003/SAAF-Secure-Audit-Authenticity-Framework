@@ -43,6 +43,4 @@ coverage.json
 # Deployed address (generated during deployment)
 deployed_address.txt
 
-# Frontend generated files
-blockchain-explorer/src/deployed_address.json
-blockchain-explorer/src/UniversalLogistics.json
+
