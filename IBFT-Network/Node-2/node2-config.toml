@@ -1,0 +1,19 @@
+# Data and Genesis
+data-path = "data"
+genesis-file = "../genesis.json"
+
+# P2P
+p2p-port = 30304
+bootnodes = [
+  "enode://4672ca359d44dd646ccb8998283ad5c2d602368b58c4dce56d47e9a88bcf6b922b2a699dc38ad9ee2ba611b9d1fa046f5949fb61425b6c0206559a52e5321693@127.0.0.1:30303"
+]
+
+# RPC
+rpc-http-enabled = true
+rpc-http-port = 8546
+rpc-http-api = ["ETH", "NET", "IBFT"]
+host-allowlist = ["*"]
+rpc-http-cors-origins = "all"
+
+# Profile
+profile = "ENTERPRISE"

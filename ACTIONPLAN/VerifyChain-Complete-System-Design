@@ -1,0 +1,2890 @@
+# VERIFYCHIAN - COMPLETE SYSTEM DESIGN & ARCHITECTURE
+## Supply Chain Verification Platform - Full Technical Blueprint
+
+---
+
+## TABLE OF CONTENTS
+1. [Complete Workflow](#complete-workflow)
+2. [Available Options & Alternatives](#available-options--alternatives)
+3. [Free Tech Stack Setup](#free-tech-stack-setup)
+4. [Unified Platform Architecture](#unified-platform-architecture)
+5. [Complete UI Details (React)](#complete-ui-details-react)
+6. [User Workflows by Role](#user-workflows-by-role)
+7. [Execution Implementation Guide](#execution-implementation-guide)
+
+---
+
+---
+
+# SECTION 1: COMPLETE WORKFLOW
+
+## 1.1 High-Level System Flow
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    VERIFYCHIAN ARCHITECTURE                     │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌──────────────┐      ┌──────────────┐      ┌──────────────┐ │
+│  │ MANUFACTURER │      │ DISTRIBUTOR  │      │  TRANSPORTER │ │
+│  │              │      │              │      │              │ │
+│  │ - Create     │      │ - Accept     │      │ - Track      │ │
+│  │   batch      │      │   batch      │      │   shipment   │ │
+│  │ - Serialize  │      │ - Verify QC  │      │ - Log temp   │ │
+│  │ - Generate   │      │ - Ship       │      │ - Verify     │ │
+│  │   QR code    │      │ - Track      │      │   seals      │ │
+│  └──────┬───────┘      └──────┬───────┘      └──────┬───────┘ │
+│         │                     │                     │         │
+│         │  Block #1           │  Block #2           │         │
+│         │  BatchCreated       │  BatchTransferred   │         │
+│         └────────────┬────────┴────────────┬────────┘         │
+│                      │                     │                   │
+│         ┌────────────▼─────────────────────▼────────┐          │
+│         │      HYPERLEDGER BESU BLOCKCHAIN        │          │
+│         │  (Unified Network - All Companies)     │          │
+│         │                                         │          │
+│         │  - Smart Contracts on EVM              │          │
+│         │  - Distributed Ledger                  │          │
+│         │  - Transaction finality                │          │
+│         │  - No single point of failure          │          │
+│         └────────────┬─────────────────────────────┘          │
+│                      │                                         │
+│         ┌────────────▼──────────────────────┐                │
+│         │   BACKEND API (Node.js + Express) │                │
+│         │   - Interacts with blockchain     │                │
+│         │   - Database (MongoDB)            │                │
+│         │   - Authentication                │                │
+│         │   - Business logic                │                │
+│         └────────────┬──────────────────────┘                │
+│                      │                                         │
+│         ┌────────────▼──────────────────────┐                │
+│         │   FRONTEND (React.js)              │                │
+│         │   - Manufacturer Dashboard         │                │
+│         │   - Distributor Dashboard          │                │
+│         │   - Transporter Tracking           │                │
+│         │   - Consumer Verification          │                │
+│         │   - Admin Panel                    │                │
+│         └────────────┬──────────────────────┘                │
+│                      │                                         │
+│         ┌────────────▼──────────────────────┐                │
+│         │   PUBLIC VERIFICATION (QR App)     │                │
+│         │   - No login required              │                │
+│         │   - Scan QR → See product history  │                │
+│         │   - Authenticity badge             │                │
+│         └──────────────────────────────────────┘                │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+## 1.2 Detailed Transaction Flow
+
+### Step 1: Manufacturer Creates Batch
+
+```
+Manufacturer opens app
+    ↓
+Logs in with Ethereum wallet (MetaMask)
+    ↓
+Clicks "Create Batch"
+    ↓
+Fills form:
+├─ Product name
+├─ Quantity
+├─ Expiry date
+├─ Manufacturing date
+└─ Storage temperature
+    ↓
+Backend generates:
+├─ Batch ID (auto)
+├─ Unique serial numbers (one per unit)
+└─ QR codes (one per unit, contains serial + batch ID)
+    ↓
+Smart contract executes:
+├─ Creates Block #1: BatchCreated
+├─ Stores on blockchain
+├─ Makes immutable
+└─ Returns transaction hash
+    ↓
+Frontend displays:
+├─ Success confirmation
+├─ Batch ID
+├─ QR codes (downloadable)
+├─ Transaction hash
+└─ Blockchain explorer link
+    ↓
+Database saves:
+├─ Batch metadata (MongoDB)
+├─ QR code images (AWS S3)
+└─ Blockchain reference
+```
+
+### Step 2: Manufacturer Assigns to Distributor
+
+```
+Manufacturer clicks "Assign to Distributor"
+    ↓
+Selects distributor from list
+    ↓
+Confirms quantity & details
+    ↓
+Backend creates Block #2: BatchTransferred
+├─ From: Manufacturer address
+├─ To: Distributor address
+├─ Amount: Batch quantity
+└─ Status: ASSIGNED_TO_DISTRIBUTOR
+    ↓
+Notification sent to Distributor:
+├─ Email: "New batch assigned to you"
+├─ Dashboard alert: "Pending acceptance"
+└─ SMS (optional)
+    ↓
+Status on blockchain: ASSIGNED (immutable)
+```
+
+### Step 3: Distributor Accepts Batch
+
+```
+Distributor logs in
+    ↓
+Sees "Pending Acceptance" section
+    ↓
+Clicks "Accept Batch" button
+    ↓
+Form appears with:
+├─ Batch details (read-only)
+├─ Warehouse selection (dropdown)
+├─ Temperature settings
+├─ Physical verification checklist
+├─ Receipt upload
+└─ Digital signature
+    ↓
+Backend validates form
+    ↓
+Smart contract executes:
+├─ Creates Block #3: DistributorAcceptedBatch
+├─ Changes ownership: Manufacturer → Distributor
+├─ Updates status: AT_DISTRIBUTOR
+└─ Records timestamp
+    ↓
+Database updates:
+├─ Inventory table: Batch added to distributor warehouse
+├─ Ownership tracking: New owner recorded
+└─ Metadata: Receipt + photos stored
+    ↓
+Frontend shows:
+├─ Success notification
+├─ Batch moved to "In Warehouse" section
+├─ [Create Shipment] button now visible
+└─ Block confirmation with details
+```
+
+### Step 4: Distributor Creates Shipment
+
+```
+Distributor clicks "Create Shipment"
+    ↓
+Multi-step form appears:
+├─ Select batches to ship (checkboxes)
+├─ Select destination pharmacy
+├─ Enter packaging details
+├─ Select transporter
+├─ Assign vehicle & driver
+└─ Set delivery SLA
+    ↓
+Backend validates:
+├─ Pharmacy is authorized (license check)
+├─ Transporter has insurance
+├─ Vehicle is certified
+└─ Inventory is sufficient
+    ↓
+Smart contract creates Block #4: ShipmentCreatedByDistributor
+├─ Shipment ID (auto-generated)
+├─ Batches included
+├─ Destination details
+├─ Transporter info
+├─ SLA details
+└─ Status: PENDING_PICKUP
+    ↓
+Notification system:
+├─ Email to Transporter: "Ready for pickup"
+├─ SMS alert: "New shipment SHIP-202412-001"
+└─ Dashboard task: "Pending Pickups"
+    ↓
+Batch status: PENDING_PICKUP (awaiting transporter)
+```
+
+### Step 5: Transporter Picks Up Shipment
+
+```
+Transporter logs in
+    ↓
+Sees "Pending Pickups" list
+    ↓
+Clicks [Pickup] button
+    ↓
+Verification form appears:
+├─ Scan QR codes (verify seals)
+├─ Confirm package count
+├─ Record pickup time & location (GPS auto-filled)
+├─ Take photos
+└─ Driver signature
+    ↓
+Backend processes:
+├─ Validates QR codes
+├─ Matches serial numbers
+├─ Records GPS location
+└─ Stores photos (AWS S3)
+    ↓
+Smart contract creates Block #5: TransportPickupConfirmedByTransporter
+├─ Transporter info
+├─ Vehicle details
+├─ Pickup location (GPS coordinates)
+├─ Seal verification
+├─ Status: IN_TRANSIT
+└─ Ownership: Still with Distributor (critical!)
+    ↓
+GPS tracking activates:
+├─ Real-time vehicle location visible on dashboard
+├─ Route map shows
+└─ Estimated time remaining
+```
+
+### Step 6: Transporter Logs Temperature (Continuous)
+
+```
+Every 4 hours during transport:
+    ↓
+Driver (or automated IoT sensor) logs:
+├─ Current temperature
+├─ Current location (GPS)
+├─ Vehicle status
+├─ Package seal status
+└─ Any issues encountered
+    ↓
+Smart contract creates Block #6, #7, #8... (Multiple)
+├─ TemperatureLoggedByTransporter
+├─ Timestamp
+├─ Location
+├─ Temperature reading
+└─ Status remains: IN_TRANSIT
+    ↓
+Monitoring system:
+├─ Real-time alerts if temperature breaches
+├─ SMS sent to stakeholders if temp out of range
+├─ Dashboard shows live temperature graph
+└─ Historical data stored immutably
+```
+
+### Step 7: Transporter Completes Delivery
+
+```
+Transporter arrives at pharmacy
+    ↓
+Clicks "Arrive at Destination"
+    ↓
+Final verification form:
+├─ Confirm location (GPS matches)
+├─ Record arrival time
+├─ Package seal verification (photos)
+├─ Pharmacy representative signature
+└─ Delivery proof (receipt)
+    ↓
+Backend creates Block #7: TransportDeliveryCompletedByTransporter
+├─ Delivery location
+├─ Delivery time
+├─ Final seal status
+├─ Package condition
+├─ Proof of delivery
+└─ Status: DELIVERY_COMPLETED
+    ↓
+Notification to Pharmacy:
+├─ Alert: "Delivery arrived - pending your acceptance"
+├─ Dashboard shows: "Incoming Delivery" with [Accept] button
+├─ Email + SMS sent
+└─ Pre-delivery report available for review
+    ↓
+Ownership status: Still with Distributor (waiting for pharmacy acceptance)
+```
+
+### Step 8: Pharmacy Accepts Delivery
+
+```
+Pharmacy manager logs in
+    ↓
+Sees "🔔 New Delivery Arrived" notification
+    ↓
+Clicks [View Pre-Delivery Report]
+    ↓
+Report shows:
+├─ Complete blockchain journey
+├─ All blocks (creation → pickup → delivery)
+├─ Temperature history
+├─ Seal verifications
+├─ Photos at each step
+├─ No tampering detected ✓
+    ↓
+Manager clicks [Accept Delivery]
+    ↓
+Acceptance form:
+├─ Physical verification checklist
+├─ All seals intact? ✓
+├─ Packaging undamaged? ✓
+├─ Quantity correct? ✓
+├─ Expiry dates valid? ✓
+├─ Temperature maintained? ✓
+├─ Receipt upload
+└─ Digital signature
+    ↓
+Smart contract creates Block #8: PharmacyAcceptedDeliveryFromDistributor
+├─ Pharmacy details
+├─ Acceptance time
+├─ Condition status: PERFECT ✓
+├─ **Ownership transfer: DISTRIBUTOR → PHARMACY**
+├─ New status: AT_PHARMACY
+└─ Immutable record of ownership change
+    ↓
+Database updates:
+├─ Inventory: Batch added to pharmacy
+├─ Ownership: Changed to pharmacy
+├─ Status: SAFE_FOR_DISPENSING
+└─ Metadata: Acceptance details stored
+    ↓
+Frontend shows:
+├─ Success notification
+├─ Batch appears in "In Pharmacy Inventory"
+├─ [Dispense to Patient] button visible
+└─ Block details with all blockchain confirmations
+```
+
+### Step 9: Pharmacy Dispenses to Patient
+
+```
+Patient comes to pharmacy with prescription
+    ↓
+Pharmacist selects medicine from inventory
+    ↓
+System records:
+├─ Medicine dispensed (units)
+├─ Batch ID used
+├─ Patient ID (hashed for privacy)
+├─ Dispensing date/time
+└─ Pharmacist name
+    ↓
+Smart contract creates Block #9: DispensingEventToPatient
+├─ Batch ID
+├─ Units dispensed
+├─ Patient ID (hashed)
+├─ Dispensing time
+└─ Pharmacist info
+    ↓
+QR code generated:
+├─ Contains: Medicine ID + Batch + Serial number
+├─ Printed on: Patient receipt
+├─ Customer keeps: For future verification
+    ↓
+Pharmacy gives patient:
+├─ Medicine
+├─ Receipt with QR code
+├─ Instructions
+└─ "Verify authenticity: Scan QR code on this receipt"
+```
+
+### Step 10: Customer Verifies Authenticity (Public, No Login)
+
+```
+Patient (or anyone) receives medicine
+    ↓
+Sees QR code on receipt/package
+    ↓
+Opens smartphone camera OR VerifyChain app
+    ↓
+Scans QR code
+    ↓
+Redirected to public verification page (NO LOGIN REQUIRED)
+    ↓
+Page displays:
+├─ Product name: Ibuprofen 400mg
+├─ Batch ID: B-202412-003
+├─ Manufacturer: Cipla Mumbai
+├─ Manufacturing date: 2024-12-01
+├─ Expiry date: 2025-12-01
+├─ Current date: 2024-12-15 (Valid ✓)
+├─ Temperature history: All in range ✓
+├─ Seal verifications: All intact ✓
+├─ Blockchain blocks:
+│  ├─ Block #1: BatchCreated at Cipla ✓
+│  ├─ Block #2: Assigned to MotilalOswal ✓
+│  ├─ Block #3: Accepted by MotilalOswal ✓
+│  ├─ Block #4: Shipped via FastHaul ✓
+│  ├─ Blocks #5-7: Temperature logs (all safe) ✓
+│  ├─ Block #8: Delivered to City Pharmacy ✓
+│  ├─ Block #9: Accepted by pharmacy ✓
+│  └─ Block #10: Dispensed to patient ✓
+│
+├─ **AUTHENTICITY BADGE: ✓ VERIFIED & SAFE**
+├─ Transport history (map showing route)
+├─ All stakeholders verified
+└─ "This product is authentic & counterfeit-free"
+    ↓
+Customer sees:
+├─ Green checkmark
+├─ Safe badge
+├─ Full transparency
+├─ Complete journey
+└─ Confidence restored ✓
+```
+
+---
+
+# SECTION 2: AVAILABLE OPTIONS & ALTERNATIVES
+
+## 2.1 Blockchain Technology Options
+
+### Option A: Hyperledger Besu (RECOMMENDED FOR YOU)
+```
+PROS:
+✅ Ethereum-compatible (can use MetaMask)
+✅ Private or public network
+✅ Free and open-source
+✅ EVM (Ethereum Virtual Machine) support
+✅ Can write Solidity smart contracts
+✅ Good for India use case
+✅ Enterprise-grade
+✅ Easy to set up locally
+
+CONS:
+❌ Needs more setup than Ethereum testnet
+❌ Need to run your own nodes
+❌ Higher infrastructure cost at scale
+
+COST: FREE (open-source)
+SETUP TIME: 2-3 days
+```
+
+### Option B: Ethereum Testnet (Sepolia)
+```
+PROS:
+✅ Free gas fees (for testing)
+✅ No infrastructure setup
+✅ Use Hardhat for development
+✅ Same as mainnet architecture
+✅ Easy for prototyping
+✅ MetaMask compatible
+✅ Great for learning
+
+CONS:
+❌ Data resets periodically
+❌ Not suitable for production
+❌ Slower than local
+❌ Public (no privacy)
+
+COST: FREE
+SETUP TIME: 1 day
+RECOMMENDATION: START HERE for prototype
+```
+
+### Option C: Polygon Network
+```
+PROS:
+✅ Low gas fees (₹0.01-0.10 per transaction)
+✅ Fast transactions (2 seconds)
+✅ EVM compatible
+✅ MetaMask compatible
+✅ Production-ready
+✅ Growing ecosystem
+✅ Easy integration
+
+CONS:
+❌ Sidechains (not fully decentralized)
+❌ Dependent on Ethereum
+❌ Some privacy concerns
+❌ Less suitable for enterprise
+
+COST: Minimal (₹100-500 for testing)
+SETUP TIME: 1 day
+```
+
+### Option D: Hyperledger Fabric (Alternative)
+```
+PROS:
+✅ Private/consortium blockchain
+✅ Better for enterprise
+✅ Confidential transactions
+✅ Government-friendly
+✅ India focus
+
+CONS:
+❌ Much more complex setup
+❌ Steeper learning curve
+❌ Requires Java/Go knowledge
+❌ Not EVM compatible
+❌ Harder to integrate with web3
+
+COST: FREE (open-source)
+SETUP TIME: 1-2 weeks
+NOT RECOMMENDED: Too complex for early stage
+```
+
+### Option E: Corda (Alternative)
+```
+PROS:
+✅ Made for financial transactions
+✅ Privacy-focused
+✅ Legal contract support
+✅ Interoperability
+
+CONS:
+❌ Overkill for your use case
+❌ Complex
+❌ Not web3-friendly
+❌ Higher learning curve
+
+COST: FREE/PAID (has commercial version)
+SETUP TIME: 2+ weeks
+NOT RECOMMENDED: Unnecessary complexity
+```
+
+## 2.2 MY RECOMMENDATION: FREE TECH STACK
+
+```
+┌─────────────────────────────────────────┐
+│  RECOMMENDED STACK (100% FREE)          │
+├─────────────────────────────────────────┤
+│                                         │
+│ BLOCKCHAIN:                             │
+│ └─ Ethereum Sepolia Testnet (initial)   │
+│ └─ Later migrate to Hyperledger Besu    │
+│                                         │
+│ SMART CONTRACTS:                        │
+│ └─ Solidity language                    │
+│ └─ Hardhat framework                    │
+│ └─ OpenZeppelin libraries               │
+│                                         │
+│ BACKEND:                                │
+│ └─ Node.js + Express.js                 │
+│ └─ MongoDB (free tier: 512MB)           │
+│ └─ Ethers.js (blockchain interaction)  │
+│                                         │
+│ FRONTEND:                               │
+│ └─ React.js                             │
+│ └─ MetaMask Web3 integration            │
+│ └─ Tailwind CSS                         │
+│ └─ Ethers.js + Web3.js                 │
+│                                         │
+│ DEPLOYMENT:                             │
+│ └─ Frontend: Vercel (free)              │
+│ └─ Backend: Render.com (free tier)      │
+│ └─ Database: MongoDB Atlas (free)       │
+│ └─ File storage: AWS S3 (free tier)     │
+│                                         │
+│ TOTAL COST: ₹0 (completely free)        │
+│                                         │
+└─────────────────────────────────────────┘
+```
+
+---
+
+# SECTION 3: FREE TECH STACK SETUP
+
+## 3.1 Complete Setup Guide
+
+### Phase 1: Local Development Setup (2-3 hours)
+
+#### Step 1: Install Prerequisites
+```bash
+# Install Node.js (includes npm)
+https://nodejs.org/ (Download LTS version)
+
+# Install Git
+https://git-scm.com/
+
+# Install MetaMask Browser Extension
+https://metamask.io/
+
+# Install Visual Studio Code
+https://code.visualstudio.com/
+```
+
+#### Step 2: Smart Contract Development (Solidity)
+
+```bash
+# Create project directory
+mkdir verifychian
+cd verifychian
+
+# Initialize Node.js project
+npm init -y
+
+# Install Hardhat (smart contract development tool)
+npm install --save-dev hardhat
+
+# Create Hardhat project
+npx hardhat init
+# Select: Create a sample project
+# Select: Use default settings
+
+# Install OpenZeppelin contracts
+npm install @openzeppelin/contracts
+
+# Install Ethers.js (for blockchain interaction)
+npm install ethers
+```
+
+#### Step 3: Create Smart Contract
+
+**File: `contracts/VerifyChain.sol`**
+
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract VerifyChain {
+    
+    // Data structures
+    struct Batch {
+        string batchId;
+        address manufacturer;
+        string productName;
+        uint256 quantity;
+        uint256 createdAt;
+        string status; // CREATED, ASSIGNED, AT_DISTRIBUTOR, IN_TRANSIT, AT_PHARMACY
+    }
+    
+    struct Block {
+        uint256 blockNumber;
+        string blockType; // BatchCreated, BatchTransferred, PickupConfirmed, etc
+        address actor;
+        string data; // JSON data stored as string
+        uint256 timestamp;
+    }
+    
+    // Storage
+    mapping(string => Batch) public batches;
+    mapping(string => Block[]) public blockHistory;
+    string[] public allBatchIds;
+    
+    // Events (for real-time updates)
+    event BatchCreated(string indexed batchId, address indexed manufacturer);
+    event StatusChanged(string indexed batchId, string newStatus);
+    
+    // Functions
+    
+    // Create new batch
+    function createBatch(
+        string memory _batchId,
+        string memory _productName,
+        uint256 _quantity
+    ) public {
+        require(bytes(batches[_batchId].batchId).length == 0, "Batch already exists");
+        
+        batches[_batchId] = Batch({
+            batchId: _batchId,
+            manufacturer: msg.sender,
+            productName: _productName,
+            quantity: _quantity,
+            createdAt: block.timestamp,
+            status: "CREATED"
+        });
+        
+        allBatchIds.push(_batchId);
+        
+        // Record on blockchain
+        blockHistory[_batchId].push(Block({
+            blockNumber: blockHistory[_batchId].length + 1,
+            blockType: "BatchCreated",
+            actor: msg.sender,
+            data: string(abi.encodePacked(_productName)),
+            timestamp: block.timestamp
+        }));
+        
+        emit BatchCreated(_batchId, msg.sender);
+    }
+    
+    // Transfer batch ownership
+    function transferBatch(
+        string memory _batchId,
+        address _newOwner,
+        string memory _reason
+    ) public {
+        Batch storage batch = batches[_batchId];
+        require(batch.manufacturer == msg.sender, "Only manufacturer can transfer");
+        require(_newOwner != address(0), "Invalid address");
+        
+        batch.status = "ASSIGNED";
+        
+        blockHistory[_batchId].push(Block({
+            blockNumber: blockHistory[_batchId].length + 1,
+            blockType: "BatchTransferred",
+            actor: msg.sender,
+            data: string(abi.encodePacked(_reason)),
+            timestamp: block.timestamp
+        }));
+        
+        emit StatusChanged(_batchId, "ASSIGNED");
+    }
+    
+    // Accept batch (distributor)
+    function acceptBatch(
+        string memory _batchId,
+        string memory _warehouseLocation
+    ) public {
+        Batch storage batch = batches[_batchId];
+        batch.status = "AT_DISTRIBUTOR";
+        
+        blockHistory[_batchId].push(Block({
+            blockNumber: blockHistory[_batchId].length + 1,
+            blockType: "DistributorAcceptedBatch",
+            actor: msg.sender,
+            data: _warehouseLocation,
+            timestamp: block.timestamp
+        }));
+        
+        emit StatusChanged(_batchId, "AT_DISTRIBUTOR");
+    }
+    
+    // Log temperature (transporter)
+    function logTemperature(
+        string memory _batchId,
+        uint256 _temperature,
+        string memory _location
+    ) public {
+        Batch storage batch = batches[_batchId];
+        require(
+            keccak256(bytes(batch.status)) == keccak256(bytes("IN_TRANSIT")),
+            "Batch not in transit"
+        );
+        
+        blockHistory[_batchId].push(Block({
+            blockNumber: blockHistory[_batchId].length + 1,
+            blockType: "TemperatureLogged",
+            actor: msg.sender,
+            data: string(abi.encodePacked("Temp:", _temperature, " Loc:", _location)),
+            timestamp: block.timestamp
+        }));
+    }
+    
+    // Get batch history
+    function getBatchHistory(string memory _batchId) 
+        public 
+        view 
+        returns (Block[] memory) 
+    {
+        return blockHistory[_batchId];
+    }
+    
+    // Get batch details
+    function getBatchDetails(string memory _batchId) 
+        public 
+        view 
+        returns (Batch memory) 
+    {
+        return batches[_batchId];
+    }
+}
+```
+
+#### Step 4: Deploy to Testnet
+
+```bash
+# Create .env file in root directory
+cat > .env << EOF
+SEPOLIA_RPC_URL=https://sepolia.infura.io/v3/YOUR_INFURA_KEY
+PRIVATE_KEY=YOUR_METAMASK_PRIVATE_KEY
+EOF
+
+# Get free Infura key
+# 1. Go to https://www.infura.io/
+# 2. Sign up free
+# 3. Create project
+# 4. Copy Sepolia RPC URL
+
+# Get test ETH from faucet
+# Go to https://sepoliafaucet.com/
+# Paste your MetaMask address
+# Wait for test ETH (free)
+
+# Deploy contract
+npx hardhat run scripts/deploy.js --network sepolia
+```
+
+#### Step 5: Backend Setup (Node.js + Express)
+
+```bash
+# Create backend folder
+mkdir backend
+cd backend
+
+# Initialize Node project
+npm init -y
+
+# Install dependencies
+npm install express mongoose dotenv cors ethers axios multer
+
+# Create server structure
+mkdir routes controllers models middleware
+touch server.js .env
+```
+
+**File: `backend/server.js`**
+
+```javascript
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const { ethers } = require('ethers');
+require('dotenv').config();
+
+const app = express();
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+
+// Connect to MongoDB
+mongoose.connect(process.env.MONGODB_URL)
+    .then(() => console.log('MongoDB connected'))
+    .catch(err => console.log(err));
+
+// Blockchain connection
+const provider = new ethers.JsonRpcProvider(process.env.SEPOLIA_RPC_URL);
+const contractAddress = process.env.CONTRACT_ADDRESS;
+const contractABI = require('./abi/VerifyChain.json');
+const contract = new ethers.Contract(contractAddress, contractABI, provider);
+
+// Routes
+app.post('/api/batch/create', async (req, res) => {
+    try {
+        const { batchId, productName, quantity } = req.body;
+        
+        // Call smart contract
+        // Note: In production, use backend wallet to sign transactions
+        
+        res.json({ success: true, message: 'Batch created' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.get('/api/batch/:batchId', async (req, res) => {
+    try {
+        const batch = await contract.getBatchDetails(req.params.batchId);
+        const history = await contract.getBatchHistory(req.params.batchId);
+        
+        res.json({ batch, history });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Start server
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+```
+
+#### Step 6: Frontend Setup (React)
+
+```bash
+# Create React app
+npx create-react-app frontend
+cd frontend
+
+# Install dependencies
+npm install web3modal ethers axios react-router-dom
+
+# Remove default files
+rm src/App.css src/logo.svg src/reportWebVitals.js
+```
+
+**File: `frontend/src/App.jsx`**
+
+```javascript
+import React, { useState, useEffect } from 'react';
+import { ethers } from 'ethers';
+import './App.css';
+
+function App() {
+  const [account, setAccount] = useState('');
+  const [contract, setContract] = useState(null);
+  const [userRole, setUserRole] = useState('');
+
+  // Connect MetaMask Wallet
+  const connectWallet = async () => {
+    try {
+      const { ethereum } = window;
+      if (!ethereum) {
+        alert('Please install MetaMask');
+        return;
+      }
+
+      const accounts = await ethereum.request({ 
+        method: 'eth_requestAccounts' 
+      });
+      
+      setAccount(accounts[0]);
+      
+      // Initialize contract
+      const provider = new ethers.BrowserProvider(ethereum);
+      const signer = provider.getSigner();
+      
+      // Your contract address and ABI
+      const contractAddress = process.env.REACT_APP_CONTRACT_ADDRESS;
+      const contractABI = require('./abi/VerifyChain.json');
+      
+      const contractInstance = new ethers.Contract(
+        contractAddress,
+        contractABI,
+        signer
+      );
+      
+      setContract(contractInstance);
+      
+      // Determine user role (based on address or API call)
+      const role = await determineUserRole(accounts[0]);
+      setUserRole(role);
+      
+    } catch (error) {
+      console.error('Error connecting wallet:', error);
+    }
+  };
+
+  const determineUserRole = async (address) => {
+    // Call backend API to get user role
+    const response = await fetch(`/api/user/${address}`);
+    const data = await response.json();
+    return data.role; // manufacturer, distributor, transporter, etc
+  };
+
+  const createBatch = async (productName, quantity) => {
+    try {
+      const batchId = `B-${Date.now()}`;
+      const tx = await contract.createBatch(batchId, productName, quantity);
+      await tx.wait();
+      alert('Batch created successfully!');
+    } catch (error) {
+      console.error('Error creating batch:', error);
+    }
+  };
+
+  return (
+    <div className="App">
+      <header>
+        <h1>VerifyChain - Supply Chain Verification</h1>
+        {!account ? (
+          <button onClick={connectWallet}>Connect Wallet</button>
+        ) : (
+          <div>
+            <p>Connected: {account.slice(0, 6)}...{account.slice(-4)}</p>
+            <p>Role: {userRole}</p>
+          </div>
+        )}
+      </header>
+
+      {account && (
+        <main>
+          {userRole === 'manufacturer' && (
+            <div>
+              <h2>Manufacturer Dashboard</h2>
+              <button onClick={() => createBatch('Ibuprofen 400mg', 10000)}>
+                Create Batch
+              </button>
+            </div>
+          )}
+          
+          {userRole === 'distributor' && (
+            <div>
+              <h2>Distributor Dashboard</h2>
+              <p>Accept incoming batches</p>
+            </div>
+          )}
+          
+          {userRole === 'transporter' && (
+            <div>
+              <h2>Transporter Dashboard</h2>
+              <p>Track shipments</p>
+            </div>
+          )}
+        </main>
+      )}
+    </div>
+  );
+}
+
+export default App;
+```
+
+---
+
+# SECTION 4: UNIFIED PLATFORM ARCHITECTURE
+
+## 4.1 How Multi-Company Architecture Works
+
+### The Key Concept: "Single Blockchain, Multiple Actors"
+
+```
+SIMPLE COLLEGE PORTAL ANALOGY:
+┌─────────────────────────────────────┐
+│  College Portal Database            │
+├─────────────────────────────────────┤
+│                                     │
+│ Student Login:                      │
+│ ├─ Email: student@college.in        │
+│ ├─ Password: hashed                 │
+│ ├─ Role: STUDENT                    │
+│ └─ Dashboard: See grades, assignments
+│                                     │
+│ Teacher Login:                      │
+│ ├─ Email: teacher@college.in        │
+│ ├─ Password: hashed                 │
+│ ├─ Role: TEACHER                    │
+│ └─ Dashboard: Set assignments, mark grades
+│                                     │
+│ Admin Login:                        │
+│ ├─ Email: admin@college.in          │
+│ ├─ Password: hashed                 │
+│ ├─ Role: ADMIN                      │
+│ └─ Dashboard: Manage all users      │
+│                                     │
+└─────────────────────────────────────┘
+
+SINGLE DATABASE, MULTIPLE LOGINS, ROLE-BASED ACCESS
+```
+
+### VerifyChain Uses Similar Logic
+
+```
+SAME CONCEPT, BLOCKCHAIN VERSION:
+
+┌─────────────────────────────────────────────┐
+│  Blockchain (Single, Shared, Immutable)     │
+├─────────────────────────────────────────────┤
+│                                             │
+│ Cipla Manufacturer (Ethereum Address 1):   │
+│ ├─ Creates Batch B-202412-003              │
+│ ├─ Transaction signed with Cipla private key
+│ ├─ Block recorded with Cipla's address     │
+│ └─ Dashboard: See all their products       │
+│                                             │
+│ MotilalOswal Distributor (Ethereum Addr 2):│
+│ ├─ Accepts Batch B-202412-003              │
+│ ├─ Transaction signed with MotilalOswal PK│
+│ ├─ Block recorded with MotilalOswal addr   │
+│ └─ Dashboard: See all their shipments      │
+│                                             │
+│ FastHaul Transporter (Ethereum Address 3): │
+│ ├─ Picks up Shipment SHIP-202412-001       │
+│ ├─ Transaction signed with FastHaul PK    │
+│ ├─ Block recorded with FastHaul address    │
+│ └─ Dashboard: See all their deliveries     │
+│                                             │
+│ City Pharmacy (Ethereum Address 4):        │
+│ ├─ Accepts delivery of B-202412-003        │
+│ ├─ Transaction signed with Pharmacy PK    │
+│ ├─ Block recorded with Pharmacy address    │
+│ └─ Dashboard: See all received stock       │
+│                                             │
+└─────────────────────────────────────────────┘
+
+SINGLE BLOCKCHAIN, MULTIPLE COMPANIES, ROLE-BASED DASHBOARD
+```
+
+## 4.2 Architecture Diagram
+
+```
+┌────────────────────────────────────────────────────────────┐
+│                 VERIFYCHIAN ARCHITECTURE                   │
+├────────────────────────────────────────────────────────────┤
+│                                                            │
+│  PRESENTATION LAYER (Frontend - React)                    │
+│  ┌─────────────┬──────────────┬──────────┬─────────────┐ │
+│  │ Mfg Login   │ Dist Login   │ Trans Log│ Pharm Login │ │
+│  │ Dashboard   │ Dashboard    │ Dashboard│ Dashboard   │ │
+│  └─────────────┴──────────────┴──────────┴─────────────┘ │
+│         ↓           ↓           ↓           ↓              │
+│                                                            │
+│  AUTHENTICATION LAYER                                     │
+│  ┌────────────────────────────────────────────────────┐   │
+│  │ Role-Based Access Control (RBAC)                  │   │
+│  │ - Check Ethereum address                          │   │
+│  │ - Verify role in database                         │   │
+│  │ - Issue JWT token for session                     │   │
+│  │ - Validate permissions per action                 │   │
+│  └────────────────────────────────────────────────────┘   │
+│         ↓           ↓           ↓           ↓              │
+│                                                            │
+│  API LAYER (Backend - Express.js)                        │
+│  ┌────────────────────────────────────────────────────┐   │
+│  │ /api/batch/create                                 │   │
+│  │ /api/batch/transfer                               │   │
+│  │ /api/shipment/create                              │   │
+│  │ /api/temperature/log                              │   │
+│  │ /api/delivery/accept                              │   │
+│  │ /api/inventory/get                                │   │
+│  └────────────────────────────────────────────────────┘   │
+│         ↓           ↓           ↓           ↓              │
+│                                                            │
+│  DATABASE LAYER (MongoDB)                                │
+│  ┌────────────────────────────────────────────────────┐   │
+│  │ Batches Collection                                │   │
+│  │ Users Collection (with roles)                     │   │
+│  │ Shipments Collection                              │   │
+│  │ Inventory Collection                              │   │
+│  │ TemperatureLogs Collection                        │   │
+│  └────────────────────────────────────────────────────┘   │
+│         ↓           ↓           ↓           ↓              │
+│                                                            │
+│  BLOCKCHAIN INTERACTION LAYER (Ethers.js)               │
+│  ┌────────────────────────────────────────────────────┐   │
+│  │ For each transaction:                             │   │
+│  │ 1. Get signer from user's MetaMask wallet        │   │
+│  │ 2. Call smart contract function                  │   │
+│  │ 3. Sign transaction with private key             │   │
+│  │ 4. Send to blockchain network                    │   │
+│  │ 5. Wait for confirmation                         │   │
+│  │ 6. Return transaction hash                       │   │
+│  └────────────────────────────────────────────────────┘   │
+│         ↓           ↓           ↓           ↓              │
+│                                                            │
+│  BLOCKCHAIN LAYER                                        │
+│  ┌────────────────────────────────────────────────────┐   │
+│  │ Ethereum Sepolia Testnet (or Hyperledger Besu)   │   │
+│  │                                                   │   │
+│  │ Smart Contract: VerifyChain.sol                   │   │
+│  │                                                   │   │
+│  │ Block #1: BatchCreated                           │   │
+│  │ ├─ Manufacturer address                          │   │
+│  │ ├─ Batch ID                                      │   │
+│  │ ├─ Product details                               │   │
+│  │ └─ Immutable record                              │   │
+│  │                                                   │   │
+│  │ Block #2: BatchTransferred                       │   │
+│  │ ├─ From manufacturer address                     │   │
+│  │ ├─ To distributor address                        │   │
+│  │ └─ Ownership change                              │   │
+│  │                                                   │   │
+│  │ [More blocks as transaction progresses]          │   │
+│  │                                                   │   │
+│  │ All records:                                      │   │
+│  │ ✓ Immutable                                      │   │
+│  │ ✓ Tamper-proof                                   │   │
+│  │ ✓ Transparent to all parties                     │   │
+│  │ ✓ Cryptographically signed                       │   │
+│  └────────────────────────────────────────────────────┘   │
+│                                                            │
+└────────────────────────────────────────────────────────────┘
+```
+
+## 4.3 No Separate Chains Per Company
+
+### Why NOT Separate Chains?
+
+```
+❌ WRONG APPROACH: Separate chain per company
+
+Company A Chain:
+├─ Batch B-001
+├─ Shipment S-001
+└─ Isolated from other companies
+
+Company B Chain:
+├─ Batch B-002
+├─ Shipment S-002
+└─ Isolated from other companies
+
+PROBLEMS:
+✗ No cross-company transparency
+✗ Batches can't transfer between companies
+✗ Can't verify end-to-end journey
+✗ Each company controls their own chain (defeats purpose)
+✗ Counterfeiters can fake an entire company chain
+✗ Expensive (operate multiple blockchain networks)
+```
+
+### ✅ CORRECT APPROACH: Single Shared Chain
+
+```
+Single Unified Blockchain:
+
+Block #1: Cipla creates batch B-001
+├─ Actor: Cipla address
+├─ Status: CREATED
+└─ Immutable record
+
+Block #2: Cipla transfers to MotilalOswal
+├─ Actor: Cipla address
+├─ To: MotilalOswal address
+├─ Status: ASSIGNED
+└─ Immutable record
+
+Block #3: MotilalOswal accepts batch
+├─ Actor: MotilalOswal address
+├─ Status: AT_DISTRIBUTOR
+└─ Immutable record
+
+Block #4: MotilalOswal ships via FastHaul
+├─ Actor: MotilalOswal address
+├─ Transporter: FastHaul address
+├─ Status: IN_TRANSIT
+└─ Immutable record
+
+Block #5-10: FastHaul logs temperatures
+├─ Actor: FastHaul address
+├─ Multiple entries
+├─ Status: IN_TRANSIT
+└─ Immutable records
+
+Block #11: FastHaul delivers to City Pharmacy
+├─ Actor: FastHaul address
+├─ Delivered to: City Pharmacy
+├─ Status: DELIVERY_COMPLETED
+└─ Immutable record
+
+Block #12: City Pharmacy accepts
+├─ Actor: City Pharmacy address
+├─ Status: AT_PHARMACY (ownership transferred)
+└─ Immutable record
+
+Block #13: Pharmacy dispenses to customer
+├─ Actor: Pharmacy address
+├─ Patient: Hashed ID
+├─ Status: DISPENSED
+└─ Immutable record
+
+PUBLIC VERIFICATION (No login needed):
+Scan QR code → See ALL blocks #1-13
+→ Full transparency from manufacturer to patient
+```
+
+## 4.4 How Role-Based Access Works
+
+```
+DATABASE STRUCTURE:
+
+Users Collection:
+┌──────────────────────────────────────────┐
+│ {                                        │
+│   _id: "507f1f77bcf86cd799439011",      │
+│   ethereumAddress: "0x742d35Cc6634C0532925a3b844Bc91e7d8e7f2D5", │
+│   companyName: "Cipla Mumbai",          │
+│   role: "MANUFACTURER",                 │
+│   email: "admin@cipla.com",             │
+│   permissions: ["CREATE_BATCH",         │
+│                 "TRANSFER_BATCH",       │
+│                 "VIEW_INVENTORY"],      │
+│   active: true,                         │
+│   createdAt: "2025-01-01"               │
+│ }                                       │
+│                                        │
+│ {                                       │
+│   _id: "507f1f77bcf86cd799439012",     │
+│   ethereumAddress: "0xAbc7aF4b6634C0532925a3b844Bc91e7d8e7f2D6", │
+│   companyName: "MotilalOswal Pharma",  │
+│   role: "DISTRIBUTOR",                 │
+│   email: "admin@motilaloswal.com",     │
+│   permissions: ["ACCEPT_BATCH",        │
+│                 "CREATE_SHIPMENT",     │
+│                 "VIEW_INVENTORY"],     │
+│   active: true,                        │
+│   createdAt: "2025-01-02"              │
+│ }                                      │
+│                                        │
+│ {                                       │
+│   _id: "507f1f77bcf86cd799439013",     │
+│   ethereumAddress: "0xDef9dG8bcf86cd799439013Bc91e7d8e7f2D7", │
+│   companyName: "FastHaul Services",    │
+│   role: "TRANSPORTER",                 │
+│   email: "tracking@fasthaul.com",      │
+│   permissions: ["PICKUP_SHIPMENT",     │
+│                 "LOG_TEMPERATURE",     │
+│                 "COMPLETE_DELIVERY"],  │
+│   active: true,                        │
+│   createdAt: "2025-01-03"              │
+│ }                                      │
+└──────────────────────────────────────────┘
+
+LOGIN FLOW:
+
+User clicks "Connect Wallet"
+    ↓
+MetaMask opens
+    ↓
+User approves connection
+    ↓
+Frontend gets Ethereum address
+    ↓
+Backend queries Users collection:
+    WHERE ethereumAddress = "0x742d35Cc6634C0532925a3b844Bc91e7d8e7f2D5"
+    ↓
+Backend finds user record:
+    {role: "MANUFACTURER", permissions: [...]}
+    ↓
+Backend creates JWT token with role encoded
+    ↓
+Frontend stores token in localStorage
+    ↓
+User logged in to their dashboard
+    ↓
+All API calls include JWT token
+    ↓
+Backend middleware verifies token and permissions
+    before allowing action
+```
+
+---
+
+# SECTION 5: COMPLETE UI DETAILS (REACT)
+
+## 5.1 Overall UI Structure
+
+```
+┌──────────────────────────────────────────────────────┐
+│          VERIFYCHIAN - MAIN NAVIGATION               │
+├──────────────────────────────────────────────────────┤
+│                                                      │
+│ Logo | Home | Products | Track | Verify | Account  │
+│                                                      │
+│ [Connect Wallet]                                    │
+│                                                      │
+└──────────────────────────────────────────────────────┘
+
+AFTER LOGIN:
+
+┌──────────────────────────────────────────────────────┐
+│  Logo  │ Dashboard │ Products │ Analytics │ Settings │
+│                              │ User: Cipla Mumbai  │
+│                              │ Role: Manufacturer  │
+│                              │ [Logout]            │
+└──────────────────────────────────────────────────────┘
+```
+
+## 5.2 Manufacturer Dashboard
+
+```
+React Component: ManufacturerDashboard.jsx
+
+┌────────────────────────────────────────────────────────────┐
+│          MANUFACTURER DASHBOARD - Cipla Mumbai             │
+├────────────────────────────────────────────────────────────┤
+│                                                            │
+│  ┌─ KPI CARDS (Top) ──────────────────────────────────┐   │
+│  │                                                    │   │
+│  │ ┌──────────┐  ┌──────────┐  ┌──────────┐          │   │
+│  │ │Batches   │  │Units     │  │Revenue   │          │   │
+│  │ │Created   │  │Produced  │  │Realized  │          │   │
+│  │ │ 145      │  │ 2.5M     │  │₹2.15 Cr  │          │   │
+│  │ │[Chart ↑] │  │[Chart ↑] │  │[Chart ↑] │          │   │
+│  │ └──────────┘  └──────────┘  └──────────┘          │   │
+│  │                                                    │   │
+│  └────────────────────────────────────────────────────┘   │
+│                                                            │
+│  ┌─ ACTION BUTTONS ───────────────────────────────────┐   │
+│  │                                                    │   │
+│  │  [+ Create Batch]  [View Inventory]  [Reports]   │   │
+│  │  [Track Shipments] [Analytics]       [Settings]  │   │
+│  │                                                    │   │
+│  └────────────────────────────────────────────────────┘   │
+│                                                            │
+│  ┌─ RECENT BATCHES ───────────────────────────────────┐   │
+│  │                                                    │   │
+│  │ Batch ID    │ Product         │ Qty  │ Status    │   │
+│  │─────────────┼─────────────────┼──────┼──────────│   │
+│  │ B-202412-05 │ Ibuprofen 400mg │ 10K  │ ✓ Created   │   │
+│  │ B-202412-04 │ Aspirin 100mg   │ 8.5K │ ⬜ Assigned  │   │
+│  │ B-202412-03 │ Paracetamol 500 │ 2.1K │ ✓ In Transit│   │
+│  │ B-202412-02 │ Omeprazole 20mg │ 5K   │ ✓ Delivered │   │
+│  │                                                    │   │
+│  │ [View All] [Download Report]                      │   │
+│  │                                                    │   │
+│  └────────────────────────────────────────────────────┘   │
+│                                                            │
+│  ┌─ GEOGRAPHIC DISTRIBUTION ──────────────────────────┐   │
+│  │                                                    │   │
+│  │         [MAP OF INDIA showing delivery locations] │   │
+│  │                                                    │   │
+│  │ Delhi: 450K units  Mumbai: 380K units            │   │
+│  │ Bangalore: 320K     Chennai: 250K units          │   │
+│  │                                                    │   │
+│  └────────────────────────────────────────────────────┘   │
+│                                                            │
+└────────────────────────────────────────────────────────────┘
+```
+
+**Code: `frontend/src/pages/ManufacturerDashboard.jsx`**
+
+```javascript
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { ethers } from 'ethers';
+
+function ManufacturerDashboard() {
+  const [batches, setBatches] = useState([]);
+  const [kpis, setKpis] = useState({
+    batchesCreated: 0,
+    unitsProduced: 0,
+    revenueRealized: 0
+  });
+
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
+
+  const loadDashboardData = async () => {
+    try {
+      const response = await axios.get('/api/manufacturer/dashboard', {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      
+      setKpis(response.data.kpis);
+      setBatches(response.data.batches);
+    } catch (error) {
+      console.error('Error loading dashboard:', error);
+    }
+  };
+
+  const handleCreateBatch = async () => {
+    const productName = prompt('Product name:');
+    const quantity = prompt('Quantity:');
+    
+    if (!productName || !quantity) return;
+
+    try {
+      // Sign transaction with MetaMask
+      const { ethereum } = window;
+      const provider = new ethers.BrowserProvider(ethereum);
+      const signer = provider.getSigner();
+
+      // Call backend to create batch
+      const response = await axios.post('/api/batch/create', 
+        { productName, quantity },
+        { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+      );
+
+      alert('Batch created successfully!');
+      loadDashboardData();
+    } catch (error) {
+      alert('Error creating batch: ' + error.message);
+    }
+  };
+
+  return (
+    <div className="manufacturer-dashboard">
+      <h1>Manufacturer Dashboard - Cipla Mumbai</h1>
+
+      {/* KPI Cards */}
+      <div className="kpi-cards">
+        <div className="card">
+          <h3>{kpis.batchesCreated}</h3>
+          <p>Batches Created</p>
+        </div>
+        <div className="card">
+          <h3>{kpis.unitsProduced}</h3>
+          <p>Units Produced</p>
+        </div>
+        <div className="card">
+          <h3>₹{kpis.revenueRealized}</h3>
+          <p>Revenue Realized</p>
+        </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="actions">
+        <button onClick={handleCreateBatch}>+ Create Batch</button>
+        <button>View Inventory</button>
+        <button>Reports</button>
+      </div>
+
+      {/* Batches Table */}
+      <div className="batches-table">
+        <h2>Recent Batches</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Batch ID</th>
+              <th>Product</th>
+              <th>Quantity</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {batches.map(batch => (
+              <tr key={batch._id}>
+                <td>{batch.batchId}</td>
+                <td>{batch.productName}</td>
+                <td>{batch.quantity}</td>
+                <td>{batch.status}</td>
+                <td>
+                  <button>View</button>
+                  <button>Track</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+export default ManufacturerDashboard;
+```
+
+## 5.3 Distributor Dashboard
+
+```
+┌────────────────────────────────────────────────────────────┐
+│        DISTRIBUTOR DASHBOARD - MotilalOswal Pharma         │
+├────────────────────────────────────────────────────────────┤
+│                                                            │
+│  ┌─ PENDING ACTIONS ──────────────────────────────────┐   │
+│  │                                                    │   │
+│  │  🔔 2 Batches Awaiting Acceptance                  │   │
+│  │  ⏳ 1 Shipment In Transit (8 hrs remaining)       │   │
+│  │  ⚠️  1 Temperature Alert (needs attention)         │   │
+│  │                                                    │   │
+│  │  [Accept Now]  [View Details]  [Dismiss]          │   │
+│  │                                                    │   │
+│  └────────────────────────────────────────────────────┘   │
+│                                                            │
+│  ┌─ INCOMING BATCHES (Pending Acceptance) ───────────┐   │
+│  │                                                    │   │
+│  │ Batch ID    │ From         │ Qty   │ Status      │   │
+│  │─────────────┼──────────────┼───────┼────────────│   │
+│  │ B-202412-04 │ Cipla Mumbai │ 8.5K  │ 🔔 NEW    │   │
+│  │ B-202412-05 │ Cipla Mumbai │ 10K   │ 🔔 NEW    │   │
+│  │                                                    │   │
+│  │ [Accept All] [Details]                            │   │
+│  │                                                    │   │
+│  └────────────────────────────────────────────────────┘   │
+│                                                            │
+│  ┌─ IN WAREHOUSE (Accepted Inventory) ────────────────┐   │
+│  │                                                    │   │
+│  │ Batch ID    │ Product         │ Qty  │ Location  │   │
+│  │─────────────┼─────────────────┼──────┼──────────│   │
+│  │ B-202412-03 │ Ibuprofen 400mg │ 10K  │ Shelf A-5 │   │
+│  │ B-202411-98 │ Paracetamol 500 │ 2.1K │ Shelf A-5 │   │
+│  │ B-202411-97 │ Aspirin 100mg   │ 5K   │ Shelf B-3 │   │
+│  │                                                    │   │
+│  │ [Create Shipment] [Analytics]                     │   │
+│  │                                                    │   │
+│  └────────────────────────────────────────────────────┘   │
+│                                                            │
+│  ┌─ ACTIVE SHIPMENTS (In Transit) ────────────────────┐   │
+│  │                                                    │   │
+│  │ Shipment ID    │ To              │ Status         │   │
+│  │────────────────┼─────────────────┼──────────────│   │
+│  │ SHIP-202412-01 │ City Pharmacy   │ ⏳ 8hrs left   │   │
+│  │ SHIP-202412-02 │ Metro Pharmacy  │ ⏳ 15hrs left  │   │
+│  │                                                    │   │
+│  │ [Track] [Details] [Alerts]                        │   │
+│  │                                                    │   │
+│  └────────────────────────────────────────────────────┘   │
+│                                                            │
+│  ┌─ WAREHOUSE UTILIZATION ────────────────────────────┐   │
+│  │                                                    │   │
+│  │ Warehouse A (Delhi):   [████████░░] 80% (40/50K)  │   │
+│  │ Warehouse B (Mumbai):  [██████░░░░] 60% (36/60K)  │   │
+│  │ Warehouse C (Bangalore):[████░░░░░░] 40% (16/40K) │   │
+│  │                                                    │   │
+│  └────────────────────────────────────────────────────┘   │
+│                                                            │
+└────────────────────────────────────────────────────────────┘
+```
+
+**Code: `frontend/src/pages/DistributorDashboard.jsx`** (Similar structure)
+
+## 5.4 Transporter Dashboard
+
+```
+┌────────────────────────────────────────────────────────────┐
+│         TRANSPORTER DASHBOARD - FastHaul Services          │
+├────────────────────────────────────────────────────────────┤
+│                                                            │
+│  ┌─ LIVE TRACKING ────────────────────────────────────┐   │
+│  │                                                    │   │
+│  │         [INTERACTIVE MAP - India]                 │   │
+│  │                                                    │   │
+│  │ 🚚 Vehicle: TR-VAN-45                             │   │
+│  │ 📍 Location: Gurgaon, Haryana                     │   │
+│  │ 🌡️  Temperature: 20°C ✓ (Safe range)              │   │
+│  │ ⏱️  ETA: 6 hours to City Pharmacy, Delhi          │   │
+│  │ 📏 Distance: 45 km covered / 80 km total          │   │
+│  │                                                    │   │
+│  └────────────────────────────────────────────────────┘   │
+│                                                            │
+│  ┌─ PENDING PICKUPS ──────────────────────────────────┐   │
+│  │                                                    │   │
+│  │ Shipment ID   │ From        │ To          │ Qty   │   │
+│  │───────────────┼─────────────┼─────────────┼───────│   │
+│  │ SHIP-202412-02│ UniChem     │ Metro Pharm │ 5K    │   │
+│  │                                                    │   │
+│  │ [Pickup Now] [Details]                            │   │
+│  │                                                    │   │
+│  └────────────────────────────────────────────────────┘   │
+│                                                            │
+│  ┌─ ACTIVE SHIPMENTS ─────────────────────────────────┐   │
+│  │                                                    │   │
+│  │ Shipment ID   │ Status           │ Actions        │   │
+│  │───────────────┼──────────────────┼────────────────│   │
+│  │ SHIP-202412-01│ ⏳ In Transit     │ [Log Temp]     │   │
+│  │               │ ETA: 6 hours     │ [Complete]     │   │
+│  │               │ Temp: 20°C ✓     │ [Details]      │   │
+│  │                                                    │   │
+│  └────────────────────────────────────────────────────┘   │
+│                                                            │
+│  ┌─ DELIVERED TODAY ──────────────────────────────────┐   │
+│  │                                                    │   │
+│  │ Shipment ID   │ Destination      │ Completed      │   │
+│  │───────────────┼──────────────────┼────────────────│   │
+│  │ SHIP-202412-00│ Apollo Pharmacy  │ 14:30 (4hrs ago)│  │
+│  │                                                    │   │
+│  │ [View Details]                                    │   │
+│  │                                                    │   │
+│  └────────────────────────────────────────────────────┘   │
+│                                                            │
+└────────────────────────────────────────────────────────────┘
+```
+
+## 5.5 Pharmacy Dashboard
+
+```
+┌────────────────────────────────────────────────────────────┐
+│        PHARMACY DASHBOARD - City Pharmacy, Delhi           │
+├────────────────────────────────────────────────────────────┤
+│                                                            │
+│  ┌─ INCOMING DELIVERIES ─────────────────────────────┐   │
+│  │                                                    │   │
+│  │  🔔 NEW DELIVERY ARRIVED                           │   │
+│  │  Shipment: SHIP-DIST-202412-001                   │   │
+│  │  From: MotilalOswal Pharma                        │   │
+│  │  Transporter: FastHaul (TR-VAN-45)               │   │
+│  │  Arrived: 2024-12-10 05:15 PM                     │   │
+│  │  Status: ⏳ Awaiting Your Acceptance              │   │
+│  │                                                    │   │
+│  │  [View Report] [Accept] [Reject] [Hold]           │   │
+│  │                                                    │   │
+│  └────────────────────────────────────────────────────┘   │
+│                                                            │
+│  ┌─ CURRENT INVENTORY ────────────────────────────────┐   │
+│  │                                                    │   │
+│  │ Batch ID    │ Product         │ Qty   │ Expiry   │   │
+│  │─────────────┼─────────────────┼───────┼──────────│   │
+│  │ B-202412-03 │ Ibuprofen 400mg │ 9,998 │ 12/02/25│   │
+│  │             │ (2 dispensed)   │       │ ✓ Safe  │   │
+│  │─────────────┼─────────────────┼───────┼──────────│   │
+│  │ B-202411-98 │ Paracetamol 500 │ 2,100 │ 11/28/25│   │
+│  │             │ (0 dispensed)   │       │ ✓ Safe  │   │
+│  │─────────────┼─────────────────┼───────┼──────────│   │
+│  │ B-202411-99 │ Aspirin 100mg   │ 5,000 │ 11/30/25│   │
+│  │             │ (0 dispensed)   │       │ ✓ Safe  │   │
+│  │                                                    │   │
+│  │ Total: 16,998 units | Safe for dispensing ✓      │   │
+│  │                                                    │   │
+│  │ [Dispense] [View Details] [Verify Authenticity]  │   │
+│  │                                                    │   │
+│  └────────────────────────────────────────────────────┘   │
+│                                                            │
+│  ┌─ DAILY DISPENSING ─────────────────────────────────┐   │
+│  │                                                    │   │
+│  │ Medicine         │ Dispensed │ Batch    │ Patient│   │
+│  │──────────────────┼───────────┼──────────┼────────│   │
+│  │ Ibuprofen 400mg  │ 2 units   │ B-202412 │ Hash.. │   │
+│  │ Omeprazole 20mg  │ 1 unit    │ B-202411 │ Hash.. │   │
+│  │ Paracetamol 500  │ 3 units   │ B-202411 │ Hash.. │   │
+│  │                                                    │   │
+│  │ [Print Report]                                    │   │
+│  │                                                    │   │
+│  └────────────────────────────────────────────────────┘   │
+│                                                            │
+└────────────────────────────────────────────────────────────┘
+```
+
+## 5.6 Public Verification (No Login)
+
+```
+User scans QR code
+    ↓
+Browser/App opens verification page
+    ↓
+NO LOGIN REQUIRED
+    ↓
+
+┌────────────────────────────────────────────────────────────┐
+│          PRODUCT AUTHENTICITY VERIFICATION                 │
+├────────────────────────────────────────────────────────────┤
+│                                                            │
+│  PRODUCT DETAILS                                          │
+│  ┌──────────────────────────────────────────────────────┐ │
+│  │                                                      │ │
+│  │  Medicine:    Ibuprofen 400mg (Tablet)              │ │
+│  │  Batch ID:    B-202412-003                          │ │
+│  │  Manufacturer: Cipla Mumbai                         │ │
+│  │  Mfg Date:    2024-12-01                            │ │
+│  │  Exp Date:    2025-12-01 ✓ VALID                   │ │
+│  │  Current Date: 2024-12-15 (16 days into shelf life)│ │
+│  │  Serial #:    CLM-B202412-003-0001                 │ │
+│  │                                                      │ │
+│  └──────────────────────────────────────────────────────┘ │
+│                                                            │
+│  SUPPLY CHAIN JOURNEY                                     │
+│  ┌──────────────────────────────────────────────────────┐ │
+│  │                                                      │ │
+│  │  ✓ Block #1: Created at Cipla Mumbai                │ │
+│  │    Date: 2024-12-01 10:00 AM                        │ │
+│  │    Tx Hash: 0x3f2a8b9d...                           │ │
+│  │                                                      │ │
+│  │  ✓ Block #2: Transferred to MotilalOswal            │ │
+│  │    Date: 2024-12-08 10:00 AM                        │ │
+│  │    Tx Hash: 0xabc7af4b...                           │ │
+│  │                                                      │ │
+│  │  ✓ Block #3: Accepted by MotilalOswal               │ │
+│  │    Date: 2024-12-08 10:30 AM                        │ │
+│  │    Warehouse: Warehouse A, Delhi                    │ │
+│  │    Tx Hash: 0xdef9dG8b...                           │ │
+│  │                                                      │ │
+│  │  ✓ Block #4: Shipment Created                       │ │
+│  │    Date: 2024-12-08 14:00 PM                        │ │
+│  │    Destination: City Pharmacy, Delhi                │ │
+│  │    Tx Hash: 0xghi0eH8c...                           │ │
+│  │                                                      │ │
+│  │  ✓ Block #5: Pickup Confirmed (FastHaul)           │ │
+│  │    Date: 2024-12-09 08:15 AM                        │ │
+│  │    Vehicle: TR-VAN-45                               │ │
+│  │    Seals: ✓ Intact & Verified                       │ │
+│  │    Tx Hash: 0xjkl1eI8d...                           │ │
+│  │                                                      │ │
+│  │  ✓ Block #6: Temperature Log #1                     │ │
+│  │    Time: 2024-12-09 10:30 AM                        │ │
+│  │    Location: Gurgaon, Haryana                       │ │
+│  │    Temp: 20°C ✓ (Safe range: 15-25°C)              │ │
+│  │    Tx Hash: 0xmno2eJ8e...                           │ │
+│  │                                                      │ │
+│  │  ✓ Block #7: Temperature Log #2                     │ │
+│  │    Time: 2024-12-09 14:30 PM                        │ │
+│  │    Location: Noida, Uttar Pradesh                   │ │
+│  │    Temp: 20°C ✓ (Safe range: 15-25°C)              │ │
+│  │    Tx Hash: 0xpqr3eK8f...                           │ │
+│  │                                                      │ │
+│  │  ✓ Block #8: Delivery Completed                     │ │
+│  │    Date: 2024-12-10 05:15 PM                        │ │
+│  │    Location: City Pharmacy, Delhi                   │ │
+│  │    Seals: ✓ All Intact                              │ │
+│  │    Tx Hash: 0xstu4eL8g...                           │ │
+│  │                                                      │ │
+│  │  ✓ Block #9: Accepted by Pharmacy                   │ │
+│  │    Date: 2024-12-10 05:30 PM                        │ │
+│  │    Officer: Priya Singh (Pharmacist)                │ │
+│  │    Condition: ✓ Perfect                             │ │
+│  │    Ownership: Transferred to Pharmacy               │ │
+│  │    Tx Hash: 0xvwx5eM8h...                           │ │
+│  │                                                      │ │
+│  │  ✓ Block #10: Dispensed to Patient                  │ │
+│  │    Date: 2024-12-15 03:45 PM                        │ │
+│  │    Dispensing Officer: Priya Singh                  │ │
+│  │    Patient ID: Hash(Patient001)                     │ │
+│  │    Units: 2                                         │ │
+│  │    Tx Hash: 0xyzz6eN8i...                           │ │
+│  │                                                      │ │
+│  └──────────────────────────────────────────────────────┘ │
+│                                                            │
+│  AUTHENTICITY VERIFICATION                                │
+│  ┌──────────────────────────────────────────────────────┐ │
+│  │                                                      │ │
+│  │  ✅ GENUINE PRODUCT                                  │ │
+│  │                                                      │ │
+│  │  ✓ Batch verified on blockchain                      │ │
+│  │  ✓ No tampering detected                             │ │
+│  │  ✓ Seals intact throughout supply chain              │ │
+│  │  ✓ Temperature maintained (20°C constant)            │ │
+│  │  ✓ All stakeholders verified & authorized            │ │
+│  │  ✓ Complete supply chain transparency                │ │
+│  │  ✓ Immutable blockchain records                      │ │
+│  │                                                      │ │
+│  │  CONFIDENCE LEVEL: 100% AUTHENTIC ✓                  │ │
+│  │                                                      │ │
+│  │  This product is SAFE to use.                        │ │
+│  │  It has passed through a verified supply chain       │ │
+│  │  from manufacturer (Cipla) to pharmacy (City Pharm)  │ │
+│  │  with complete transparency & immutability.          │ │
+│  │                                                      │ │
+│  │  All records are stored on blockchain (Ethereum) and│ │
+│  │  cannot be altered or forged.                        │ │
+│  │                                                      │ │
+│  └──────────────────────────────────────────────────────┘ │
+│                                                            │
+│  [View Full Blockchain Records] [Download Report] [Share] │
+│                                                            │
+│  Report Generated: 2024-12-15 04:00 PM                   │
+│  Report Expires: Never (blockchain is permanent)         │
+│                                                            │
+└────────────────────────────────────────────────────────────┘
+```
+
+---
+
+# SECTION 6: USER WORKFLOWS BY ROLE
+
+## 6.1 Manufacturer Workflow
+
+```
+┌─ MANUFACTURER WORKFLOW ────────────────────────────────────┐
+│                                                            │
+│  STEP 1: LOGIN                                             │
+│  ├─ Click "Connect Wallet"                                │
+│  ├─ MetaMask opens                                        │
+│  ├─ Approve connection                                    │
+│  └─ Dashboard loads → Manufacturer view                   │
+│                                                            │
+│  STEP 2: CREATE BATCH                                     │
+│  ├─ Click "+ Create Batch" button                         │
+│  ├─ Fill form:                                            │
+│  │  ├─ Product name                                       │
+│  │  ├─ Quantity (number of units)                         │
+│  │  ├─ Manufacturing date (auto: today)                   │
+│  │  ├─ Expiry date (select)                               │
+│  │  ├─ Storage temperature (default: room temp)           │
+│  │  └─ Upload batch certificate                          │
+│  ├─ Click "Create Batch" button                           │
+│  └─ Smart contract executes (MetaMask prompt)             │
+│      Backend creates:                                     │
+│      ├─ Batch ID (B-202412-003)                          │
+│      ├─ QR codes (10,000 QR codes generated)             │
+│      ├─ Block #1 on blockchain                           │
+│      └─ Immutable record                                  │
+│                                                            │
+│  STEP 3: VERIFY BATCH CREATED                             │
+│  ├─ See success message                                   │
+│  ├─ Batch appears in dashboard                            │
+│  ├─ Status: CREATED ✓                                     │
+│  ├─ Transaction hash: 0x3f2a8b9d...                       │
+│  ├─ Download QR codes (PDF)                               │
+│  └─ Share link with distributor                           │
+│                                                            │
+│  STEP 4: ASSIGN TO DISTRIBUTOR                            │
+│  ├─ Click [Assign to Distributor] button                  │
+│  ├─ Select distributor from dropdown:                     │
+│  │  ├─ MotilalOswal Pharma ← Select                       │
+│  │  ├─ UniChem                                            │
+│  │  └─ Other distributors...                              │
+│  ├─ Confirm quantity                                      │
+│  ├─ Click "Assign Batch"                                  │
+│  └─ MetaMask prompts to sign                              │
+│      Backend creates:                                     │
+│      ├─ Block #2: BatchTransferred                        │
+│      ├─ Ownership: Cipla → MotilalOswal                   │
+│      └─ Status: ASSIGNED_TO_DISTRIBUTOR                   │
+│                                                            │
+│  STEP 5: TRACK BATCH                                      │
+│  ├─ Dashboard shows batch status                          │
+│  ├─ Click "Track Batch" button                            │
+│  ├─ See all blocks:                                       │
+│  │  ├─ #1 Created at Cipla                                │
+│  │  ├─ #2 Assigned to MotilalOswal                        │
+│  │  ├─ #3 Accepted by MotilalOswal                        │
+│  │  ├─ #4 Shipped via FastHaul                            │
+│  │  ├─ #5-7 Temperature logs                              │
+│  │  ├─ #8 Delivered to pharmacy                           │
+│  │  └─ #9 Accepted by pharmacy                            │
+│  ├─ Map shows delivery route                              │
+│  └─ Temperature graph shows journey                       │
+│                                                            │
+│  STEP 6: ANALYTICS & REPORTS                              │
+│  ├─ Click "Analytics" tab                                 │
+│  ├─ See KPIs:                                             │
+│  │  ├─ Total batches created                              │
+│  │  ├─ Total units produced                               │
+│  │  ├─ Average delivery time                              │
+│  │  ├─ Temperature breaches (0)                           │
+│  │  └─ Customer satisfaction                              │
+│  ├─ Download reports (PDF/CSV)                            │
+│  └─ Share with stakeholders                               │
+│                                                            │
+└────────────────────────────────────────────────────────────┘
+```
+
+## 6.2 Distributor Workflow
+
+```
+┌─ DISTRIBUTOR WORKFLOW ────────────────────────────────────┐
+│                                                           │
+│  STEP 1: LOGIN                                            │
+│  ├─ Click "Connect Wallet"                               │
+│  ├─ MetaMask opens                                       │
+│  ├─ Approve connection                                   │
+│  └─ Dashboard loads → Distributor view                   │
+│                                                           │
+│  STEP 2: CHECK PENDING BATCHES                            │
+│  ├─ See "Pending Acceptance" section                     │
+│  ├─ Shows: B-202412-003, B-202412-004                   │
+│  └─ Status: 🔔 NEW (red badge)                           │
+│                                                           │
+│  STEP 3: ACCEPT BATCH                                    │
+│  ├─ Click [Accept Batch] button                          │
+│  ├─ Modal form opens with:                               │
+│  │  ├─ Batch details (read-only)                        │
+│  │  ├─ Warehouse selection                               │
+│  │  ├─ Temperature settings                              │
+│  │  ├─ Physical QC checklist (8 checkboxes)              │
+│  │  │  ├─ ☐ Packaging intact                             │
+│  │  │  ├─ ☐ Seals unbroken                               │
+│  │  │  ├─ ☐ QR codes readable                            │
+│  │  │  ├─ ☐ Labels intact                                │
+│  │  │  ├─ ☐ No leakage                                   │
+│  │  │  ├─ ☐ All boxes present                            │
+│  │  │  ├─ ☐ Temperature maintained                       │
+│  │  │  └─ ☐ No prior opening signs                       │
+│  │  ├─ Receipt upload (photo)                            │
+│  │  └─ Digital signature (draw on screen)                │
+│  ├─ Fill form completely                                 │
+│  ├─ Click "Accept Batch"                                 │
+│  └─ MetaMask prompts to sign                             │
+│      Backend creates:                                    │
+│      ├─ Block #3: DistributorAcceptedBatch               │
+│      ├─ Ownership confirmed                              │
+│      ├─ Status: AT_DISTRIBUTOR                           │
+│      └─ Inventory updated                                │
+│                                                           │
+│  STEP 4: BATCH NOW IN WAREHOUSE                          │
+│  ├─ Batch moves to "In Warehouse" section                │
+│  ├─ Status changes: 🔔 NEW → ✓ ACCEPTED                 │
+│  ├─ [Accept] button changes to [View] & [Ship]           │
+│  ├─ Can now create shipment for this batch               │
+│  └─ Inventory dashboard updated                          │
+│                                                           │
+│  STEP 5: CREATE SHIPMENT                                 │
+│  ├─ Click [Create Shipment] button                       │
+│  ├─ Multi-step form appears:                             │
+│  │                                                       │
+│  │  STEP 5A: Select Batches                              │
+│  │  ├─ Checkboxes appear:                                │
+│  │  │  ├─ ☐ B-202412-003 (10K units)                    │
+│  │  │  ├─ ☐ B-202412-004 (8.5K units)                   │
+│  │  │  └─ ☐ B-202411-098 (2.1K units)                   │
+│  │  ├─ Select: B-202412-003 & B-202411-098              │
+│  │  └─ Total: 12,100 units                               │
+│  │                                                       │
+│  │  STEP 5B: Destination Details                         │
+│  │  ├─ Pharmacy dropdown shows:                          │
+│  │  │  ├─ City Pharmacy, Delhi (DL-987654) ← Select     │
+│  │  │  ├─ Metro Pharmacy, Delhi (DL-987655)             │
+│  │  │  └─ Apollo Pharmacy, Bangalore (KA-234567)        │
+│  │  ├─ Auto-fills pharmacy details                       │
+│  │  ├─ License verified ✓                                │
+│  │  └─ Address: Plot 45-B, CP, Delhi                    │
+│  │                                                       │
+│  │  STEP 5C: Packaging Details                           │
+│  │  ├─ # Boxes: 2                                        │
+│  │  ├─ Box 1: B-202412-003, 10K units, 5kg              │
+│  │  │  ├─ Hologram seal: TBD                             │
+│  │  │  └─ QR code: Verified                              │
+│  │  ├─ Box 2: B-202411-098, 2.1K units, 1.5kg           │
+│  │  │  ├─ Hologram seal: TBD                             │
+│  │  │  └─ QR code: Verified                              │
+│  │  └─ Temperature: Room Temp (15-25°C)                 │
+│  │                                                       │
+│  │  STEP 5D: Select Transporter                          │
+│  │  ├─ Transporter dropdown:                             │
+│  │  │  ├─ FastHaul Pharma (TR-234567) ← Select          │
+│  │  │  ├─ SafeExpress Logistics (TR-123456)             │
+│  │  │  └─ LocalHub Delivery (TR-345678)                 │
+│  │  ├─ Vehicle: TR-VAN-45 (Refrigerated van)            │
+│  │  ├─ Driver: Sanjay Kumar                              │
+│  │  ├─ Insurance: ✓ ₹10 lakh coverage                   │
+│  │  └─ Track record: 4.8/5 (250+ deliveries)            │
+│  │                                                       │
+│  │  STEP 5E: SLA & Instructions                          │
+│  │  ├─ Pickup: 2024-12-09 08:00 AM                       │
+│  │  ├─ Delivery SLA: 2024-12-10 05:00 PM                 │
+│  │  ├─ Special instructions:                             │
+│  │  │  └─ "Temp critical. No opening. Verify seals."     │
+│  │  └─ Confirm all details                               │
+│  │                                                       │
+│  ├─ Click "Create Shipment"                              │
+│  └─ MetaMask prompts to sign                             │
+│      Backend creates:                                    │
+│      ├─ Block #4: ShipmentCreatedByDistributor           │
+│      ├─ Shipment ID: SHIP-DIST-202412-001               │
+│      ├─ Status: PENDING_PICKUP                           │
+│      └─ Notification → Transporter                       │
+│                                                           │
+│  STEP 6: SHIPMENT CREATED                                │
+│  ├─ Confirmation page shows:                             │
+│  │  ├─ Shipment ID                                       │
+│  │  ├─ Transaction hash                                  │
+│  │  ├─ Blockchain block #4                               │
+│  │  └─ "Transporter will pick up soon"                   │
+│  ├─ Batch status: IN_TRANSIT (awaiting pickup)           │
+│  ├─ Transporter notified via:                            │
+│  │  ├─ Email: "New shipment ready for pickup"            │
+│  │  ├─ SMS: "SHIP-DIST-202412-001"                       │
+│  │  └─ Dashboard alert                                   │
+│  └─ Move to "Active Shipments" section                   │
+│                                                           │
+│  STEP 7: MONITOR SHIPMENT                                │
+│  ├─ Dashboard shows "Active Shipments"                   │
+│  ├─ SHIP-DIST-202412-001:                                │
+│  │  ├─ Status: ⏳ In Transit                              │
+│  │  ├─ ETA: 2024-12-10 05:00 PM                          │
+│  │  ├─ Current location: (updated by transporter)        │
+│  │  ├─ Temperature: 20°C ✓ (from IoT sensor)            │
+│  │  └─ Alerts: None                                      │
+│  ├─ Click [Track] to see live map                        │
+│  ├─ Click [Details] for full information                 │
+│  └─ Receive alerts if:                                   │
+│      ├─ Temperature breach                               │
+│      ├─ Delay detected                                   │
+│      └─ Delivery completed                               │
+│                                                           │
+│  STEP 8: DELIVERY COMPLETION NOTIFICATION                │
+│  ├─ Alert: "Shipment delivered to pharmacy"              │
+│  ├─ Delivery timestamp: 2024-12-10 05:15 PM              │
+│  ├─ Status now: DELIVERY_COMPLETED (awaiting pharmacy)   │
+│  ├─ Click [Details] to see:                              │
+│  │  ├─ Pharmacy signature                                │
+│  │  ├─ Delivery photos                                   │
+│  │  └─ Final seal status: ✓ Intact                      │
+│  └─ Waiting for pharmacy to accept                       │
+│                                                           │
+│  STEP 9: PHARMACY ACCEPTANCE (Final Transfer)            │
+│  ├─ Pharmacy accepts delivery                            │
+│  ├─ Block #8 created: PharmacyAcceptedDeliveryFromDist   │
+│  ├─ **OWNERSHIP TRANSFERRED:** Distributor → Pharmacy    │
+│  ├─ Status: AT_PHARMACY                                  │
+│  ├─ Dashboard updates:                                   │
+│  │  ├─ Shipment moves to "Completed Shipments"           │
+│  │  ├─ Batch removed from distributor inventory           │
+│  │  └─ Pharmacy inventory updated                        │
+│  └─ Distributor can now create new shipments            │
+│                                                           │
+│  STEP 10: ANALYTICS & REPORTING                          │
+│  ├─ Dashboard shows KPIs                                 │
+│  ├─ Total shipments: 500+                                │
+│  ├─ On-time delivery rate: 98.5%                         │
+│  ├─ Temperature breaches: 0                              │
+│  ├─ Customer satisfaction: 4.9/5                         │
+│  └─ Download reports (PDF/CSV)                           │
+│                                                           │
+└────────────────────────────────────────────────────────────┘
+```
+
+## 6.3 Transporter Workflow
+
+```
+┌─ TRANSPORTER WORKFLOW ────────────────────────────────────┐
+│                                                           │
+│  STEP 1: LOGIN                                            │
+│  ├─ Click "Connect Wallet"                               │
+│  ├─ MetaMask opens                                       │
+│  ├─ Approve connection                                   │
+│  └─ Dashboard loads → Transporter view                   │
+│                                                           │
+│  STEP 2: CHECK PENDING PICKUPS                           │
+│  ├─ See "Pending Pickups" section                        │
+│  ├─ Shows available shipments:                           │
+│  │  ├─ SHIP-DIST-202412-001 (from MotilalOswal)        │
+│  │  └─ Scheduled: 2024-12-09 08:00 AM                   │
+│  └─ [Pickup] button ready                                │
+│                                                           │
+│  STEP 3: VERIFY PICKUP TIME                              │
+│  ├─ Vehicle assigned: TR-VAN-45                          │
+│  ├─ Driver: Sanjay Kumar                                 │
+│  ├─ Go to distributor warehouse at scheduled time        │
+│  ├─ Arrive at: Warehouse A, Delhi                        │
+│  └─ Time: 2024-12-09 08:00 AM                            │
+│                                                           │
+│  STEP 4: PICKUP VERIFICATION (At Warehouse)              │
+│  ├─ Click [Pickup Shipment] button                       │
+│  ├─ Pickup form opens:                                   │
+│  │                                                       │
+│  │  ✓ GPS Auto-filled: 28.6139° N, 77.2090° E          │
+│  │  ✓ Current time: 2024-12-09 08:15 AM                 │
+│  │                                                       │
+│  │  Package Verification:                                │
+│  │  ├─ Box 1 (BOX-001):                                  │
+│  │  │  ├─ Scan QR code → ✓ Verified                     │
+│  │  │  ├─ Seal status: ✓ Hologram intact                │
+│  │  │  ├─ Physical check: ✓ No damage                    │
+│  │  │  └─ Weight: ✓ 5 kg                                 │
+│  │  │                                                    │
+│  │  ├─ Box 2 (BOX-002):                                  │
+│  │  │  ├─ Scan QR code → ✓ Verified                     │
+│  │  │  ├─ Seal status: ✓ Hologram intact                │
+│  │  │  ├─ Physical check: ✓ No damage                    │
+│  │  │  └─ Weight: ✓ 1.5 kg                               │
+│  │  │                                                    │
+│  │  Vehicle Status:                                      │
+│  │  ├─ Refrigeration: ✓ ON and stable                   │
+│  │  ├─ Temperature: ✓ 20°C (in range)                    │
+│  │  ├─ GPS device: ✓ Active                              │
+│  │  └─ Doors: ✓ Secure                                   │
+│  │                                                       │
+│  │  Driver Signature:                                    │
+│  │  ├─ Draw digital signature on screen                  │
+│  │  └─ Take photo of driver for verification             │
+│  │                                                       │
+│  │  Distributor Sign-off:                                │
+│  │  ├─ Warehouse manager signature captured              │
+│  │  ├─ Manager name: Raj Kumar                           │
+│  │  └─ Title: Warehouse Manager                          │
+│  │                                                       │
+│  │  Pickup Notes:                                        │
+│  │  ├─ "All packages collected. Seals verified intact."  │
+│  │  ├─ "Temperature 20°C. Refrigeration running."        │
+│  │  └─ "Ready for transport to City Pharmacy."           │
+│  │                                                       │
+│  ├─ Click "Confirm Pickup"                               │
+│  └─ MetaMask prompts to sign                             │
+│      Backend creates:                                    │
+│      ├─ Block #5: TransportPickupConfirmedByTransporter  │
+│      ├─ Ownership: Still with Distributor (CRITICAL!)    │
+│      ├─ Status: IN_TRANSIT                               │
+│      └─ GPS tracking starts                              │
+│                                                           │
+│  STEP 5: VEHICLE DEPARTS                                 │
+│  ├─ Packages loaded in TR-VAN-45                         │
+│  ├─ Depart from warehouse                                │
+│  ├─ Route to City Pharmacy, Delhi                        │
+│  ├─ Distance: 80 km                                      │
+│  ├─ Estimated time: 6-8 hours                            │
+│  └─ Live GPS tracking active                             │
+│                                                           │
+│  STEP 6: LOG TEMPERATURE (Every 4 hours)                 │
+│  ├─ At 2024-12-09 10:30 AM (2 hrs into transit):        │
+│  │  ├─ Click [Log Temperature] button                    │
+│  │  ├─ Form opens:                                       │
+│  │  │  ├─ GPS: 28.4595° N, 77.0266° E (Gurgaon)        │
+│  │  │  ├─ Temperature: 20°C (manual or sensor)           │
+│  │  │  ├─ Status: ✓ Safe (range: 15-25°C)               │
+│  │  │  ├─ Seals: ✓ Still intact                         │
+│  │  │  ├─ Notes: "All good. Smooth drive."               │
+│  │  │  └─ Photo: (optional)                              │
+│  │  ├─ Click "Submit Log"                                │
+│  │  └─ MetaMask prompts to sign                          │
+│  │                                                       │
+│  │      Backend creates:                                 │
+│  │      ├─ Block #6: TemperatureLoggedByTransporter      │
+│  │      ├─ Location, temperature, seal status            │
+│  │      └─ Status remains: IN_TRANSIT                    │
+│  │                                                       │
+│  ├─ At 2024-12-09 14:30 PM (6 hrs into transit):        │
+│  │  ├─ [Log Temperature] again                           │
+│  │  ├─ GPS: 28.5400° N, 77.1500° E (Noida)             │
+│  │  ├─ Temperature: 20°C ✓                               │
+│  │  └─ Submit (Block #7 created)                         │
+│  │                                                       │
+│  └─ Temperature logs continue until arrival              │
+│                                                           │
+│  STEP 7: ARRIVAL AT PHARMACY                             │
+│  ├─ Time: 2024-12-10 05:15 PM (32 hrs later)            │
+│  ├─ Location: City Pharmacy, Delhi                       │
+│  ├─ Click [Arrive at Destination]                        │
+│  ├─ Delivery form opens:                                 │
+│  │  ├─ GPS confirms location: ✓ Match                    │
+│  │  ├─ Arrival time: 2024-12-10 05:15 PM                │
+│  │  ├─ Final temperature: 20°C ✓                         │
+│  │  ├─ Package seals: ✓ All intact                       │
+│  │  ├─ Delivery proof photos: (multiple angles)          │
+│  │  ├─ Pharmacy rep signature: (Priya Singh)             │
+│  │  └─ Delivery receipt: (scanned)                       │
+│  │                                                       │
+│  ├─ Click "Confirm Delivery"                             │
+│  └─ MetaMask prompts to sign                             │
+│      Backend creates:                                    │
+│      ├─ Block #7: TransportDeliveryCompletedByTransporter│
+│      ├─ Status: DELIVERY_COMPLETED                       │
+│      └─ Ownership: Still Distributor (awaiting pharmacy) │
+│                                                           │
+│  STEP 8: DELIVERY COMPLETED                              │
+│  ├─ Dashboard shows: "Delivery completed ✓"              │
+│  ├─ Shipment moves to "Completed Deliveries"             │
+│  ├─ Pharmacy notified: "Delivery arrived - accept now"   │
+│  ├─ Transporter role ends                                │
+│  └─ Wait for pharmacy to accept (final transfer)         │
+│                                                           │
+│  STEP 9: TRACK ADDITIONAL SHIPMENTS                      │
+│  ├─ Check "Pending Pickups" again                        │
+│  ├─ More shipments available                             │
+│  ├─ Repeat steps 3-8 for next shipment                   │
+│  └─ Process continues                                    │
+│                                                           │
+│  STEP 10: ANALYTICS & PERFORMANCE                        │
+│  ├─ Dashboard shows KPIs                                 │
+│  ├─ Deliveries completed: 180                            │
+│  ├─ On-time rate: 98.5%                                  │
+│  ├─ Temperature breaches: 0                              │
+│  ├─ Average delivery time: 7.2 hours                     │
+│  ├─ Efficiency rating: 4.8/5                             │
+│  └─ Download performance report                          │
+│                                                           │
+└────────────────────────────────────────────────────────────┘
+```
+
+## 6.4 Pharmacy Workflow
+
+```
+┌─ PHARMACY WORKFLOW ───────────────────────────────────────┐
+│                                                           │
+│  STEP 1: LOGIN                                            │
+│  ├─ Click "Connect Wallet"                               │
+│  ├─ MetaMask opens                                       │
+│  ├─ Approve connection                                   │
+│  └─ Dashboard loads → Pharmacy view                      │
+│                                                           │
+│  STEP 2: INCOMING DELIVERY NOTIFICATION                  │
+│  ├─ 🔔 Alert appears: "NEW DELIVERY ARRIVED"             │
+│  ├─ Shipment: SHIP-DIST-202412-001                       │
+│  ├─ From: MotilalOswal Pharma                            │
+│  ├─ Transporter: FastHaul (TR-VAN-45)                    │
+│  ├─ Time: 2024-12-10 05:15 PM                            │
+│  └─ Status: ⏳ Awaiting Your Acceptance                  │
+│                                                           │
+│  STEP 3: REVIEW PRE-DELIVERY REPORT                      │
+│  ├─ Click [View Pre-Delivery Report]                     │
+│  ├─ Report shows complete blockchain journey:            │
+│  │  ├─ Block #1: BatchCreated (Cipla)                    │
+│  │  ├─ Block #2: BatchTransferred (Cipla→MotilalOswal)   │
+│  │  ├─ Block #3: DistributorAcceptedBatch               │
+│  │  ├─ Block #4: ShipmentCreatedByDistributor            │
+│  │  ├─ Block #5: TransportPickupConfirmedByTransporter   │
+│  │  ├─ Blocks #6-7: Temperature logs (all ✓ safe)       │
+│  │  └─ Block #7: TransportDeliveryCompletedByTransporter │
+│  │                                                       │
+│  │ Temperature History:                                  │
+│  │  ├─ Distribution to pharmacy: 20°C (2024-12-09)      │
+│  │  ├─ Gurgaon: 20°C (10:30 AM)                         │
+│  │  ├─ Noida: 20°C (14:30 PM)                           │
+│  │  └─ Delivery: 20°C (2024-12-10 05:15 PM)             │
+│  │  → ALL SAFE ✓ (Range: 15-25°C)                       │
+│  │                                                       │
+│  │ Seal Verification:                                    │
+│  │  ├─ Pickup: Hologram intact ✓                         │
+│  │  ├─ Transport: No tampering detected ✓               │
+│  │  └─ Delivery: All seals intact ✓                     │
+│  │                                                       │
+│  │ Overall Assessment: ✅ SAFE FOR ACCEPTANCE           │
+│  │                                                       │
+│  └─ Click [Accept] or [Hold] or [Reject]                │
+│                                                           │
+│  STEP 4: PHYSICAL INSPECTION (At Pharmacy)               │
+│  ├─ Packages arrive at pharmacy                          │
+│  ├─ Pharmacy manager (Priya Singh) receives packages     │
+│  ├─ Performs physical inspection:                        │
+│  │  ├─ Visual inspection: ✓ No damage                    │
+│  │  ├─ Seal verification: ✓ All hologram seals intact    │
+│  │  ├─ QR code verification: ✓ All readable             │
+│  │  ├─ Package count: ✓ 2 boxes (matches)                │
+│  │  ├─ Weight verification: ✓ Correct weights            │
+│  │  └─ Temperature check: ✓ 20°C                         │
+│  │                                                       │
+│  └─ All checks pass ✓                                    │
+│                                                           │
+│  STEP 5: ACCEPT DELIVERY                                 │
+│  ├─ Click [Accept Delivery] button                       │
+│  ├─ Acceptance form opens:                               │
+│  │                                                       │
+│  │  Shipment Details (Read-only):                        │
+│  │  ├─ Shipment ID: SHIP-DIST-202412-001                │
+│  │  ├─ From: MotilalOswal Pharma                         │
+│  │  ├─ Batches: B-202412-003, B-202411-098              │
+│  │  ├─ Total units: 12,100                              │
+│  │  └─ Delivery time: 2024-12-10 05:15 PM               │
+│  │                                                       │
+│  │  Pre-Delivery Status (Verified Above):                │
+│  │  ├─ Temperature: ✓ All safe (20°C)                    │
+│  │  ├─ Seals: ✓ All intact                              │
+│  │  ├─ Tampering: ✓ None detected                       │
+│  │  └─ Blockchain: ✓ Complete audit trail               │
+│  │                                                       │
+│  │  Physical Verification Checklist:                     │
+│  │  ├─ ☑ Packages counted (2 boxes)                      │
+│  │  ├─ ☑ No visible damage                               │
+│  │  ├─ ☑ Seals intact and hologram verified              │
+│  │  ├─ ☑ QR codes readable                               │
+│  │  ├─ ☑ Labels not faded                                │
+│  │  ├─ ☑ Batch IDs match documentation                   │
+│  │  ├─ ☑ Quantities verified (10K + 2.1K)               │
+│  │  ├─ ☑ Expiry dates valid (>6 months)                  │
+│  │  ├─ ☑ Temperature maintained during transport         │
+│  │  └─ ☑ No recall notices apply                         │
+│  │                                                       │
+│  │  Pharmacy Assignment:                                 │
+│  │  ├─ Store at: Shelf A-5, Room Temperature            │
+│  │  ├─ Temperature: 20°C                                 │
+│  │  └─ Storage area: Main pharmacy shelf                │
+│  │                                                       │
+│  │  Receiving Officer:                                   │
+│  │  ├─ Name: Priya Singh (Auto-filled)                  │
+│  │  ├─ Title: Pharmacist                                │
+│  │  ├─ License: PH-DL-654321                             │
+│  │  └─ Time: 2024-12-10 05:30 PM                         │
+│  │                                                       │
+│  │  Acceptance Confirmation:                             │
+│  │  ├─ Digital signature (draw on screen)                │
+│  │  ├─ Pharmacy stamp (photo)                            │
+│  │  └─ ☑ I accept ownership of these batches            │
+│  │                                                       │
+│  ├─ Click "Accept Delivery"                              │
+│  └─ MetaMask prompts to sign                             │
+│      Backend creates:                                    │
+│      ├─ Block #8: PharmacyAcceptedDeliveryFromDistributor│
+│      ├─ **OWNERSHIP TRANSFERRED:** Distributor→Pharmacy  │
+│      ├─ Status: AT_PHARMACY                              │
+│      └─ Inventory updated                                │
+│                                                           │
+│  STEP 6: INVENTORY UPDATED                               │
+│  ├─ Dashboard automatically refreshes                    │
+│  ├─ New section appears: "In Pharmacy Inventory"         │
+│  ├─ Batches now visible:                                 │
+│  │  ├─ B-202412-003: 10,000 units ✓ SAFE                │
+│  │  └─ B-202411-098: 2,100 units ✓ SAFE                 │
+│  ├─ Status: SAFE_FOR_DISPENSING                          │
+│  ├─ [Dispense to Patient] button now visible             │
+│  └─ Success notification appears                         │
+│                                                           │
+│  STEP 7: PROCESS PATIENT PRESCRIPTION                    │
+│  ├─ Patient comes to pharmacy                            │
+│  ├─ Presents prescription for Ibuprofen 400mg            │
+│  ├─ Pharmacist searches inventory                        │
+│  ├─ Selects Batch B-202412-003                           │
+│  ├─ Clicks [Dispense to Patient]                         │
+│  ├─ Dispensing form opens:                               │
+│  │  ├─ Batch: B-202412-003                               │
+│  │  ├─ Medicine: Ibuprofen 400mg                         │
+│  │  ├─ Units: 2 (or as prescribed)                       │
+│  │  ├─ Current stock: 10,000                             │
+│  │  ├─ Patient ID (optional): [Hash for privacy]        │
+│  │  ├─ Pharmacist: Priya Singh (auto-filled)            │
+│  │  └─ Date/Time: 2024-12-15 03:45 PM (auto)            │
+│  │                                                       │
+│  ├─ Click "Dispense"                                     │
+│  └─ MetaMask prompts to sign                             │
+│      Backend creates:                                    │
+│      ├─ Block #9: DispensingEventToPatient               │
+│      ├─ Batch: B-202412-003                              │
+│      ├─ Units dispensed: 2                               │
+│      ├─ Patient ID: Hashed (privacy)                     │
+│      ├─ Remaining stock: 9,998                           │
+│      └─ Immutable record                                 │
+│                                                           │
+│  STEP 8: GENERATE RECEIPT WITH QR CODE                   │
+│  ├─ Receipt generated automatically                      │
+│  ├─ Contains:                                            │
+│  │  ├─ Medicine name                                     │
+│  │  ├─ Quantity dispensed                                │
+│  │  ├─ Batch ID                                          │
+│  │  ├─ Date dispensed                                    │
+│  │  ├─ Pharmacist name                                   │
+│  │  ├─ **QR CODE** (for future verification)             │
+│  │  └─ Instructions                                      │
+│  │                                                       │
+│  ├─ Print receipt (standard printer)                     │
+│  └─ Give to patient                                      │
+│                                                           │
+│  STEP 9: PATIENT VERIFICATION (Later)                    │
+│  ├─ Patient scans QR code on receipt                     │
+│  ├─ Opens public verification page (NO LOGIN)            │
+│  ├─ Sees complete blockchain journey                     │
+│  ├─ All 9 blocks verified                                │
+│  ├─ ✅ AUTHENTICITY BADGE                                │
+│  └─ Confidence: 100% GENUINE ✓                           │
+│                                                           │
+│  STEP 10: PHARMACY ANALYTICS                             │
+│  ├─ Dashboard shows KPIs                                 │
+│  ├─ Total stock received: 50,000+ units                  │
+│  ├─ Total dispensed: 25,400 units                        │
+│  ├─ Current inventory: 24,600 units                      │
+│  ├─ Accuracy rate: 100%                                  │
+│  ├─ Temperature breaches: 0                              │
+│  ├─ Counterfeit detected: 0 ✓                            │
+│  └─ Download reports (PDF/CSV)                           │
+│                                                           │
+└────────────────────────────────────────────────────────────┘
+```
+
+## 6.5 Admin/Validator Workflow
+
+```
+┌─ ADMIN/VALIDATOR WORKFLOW ─────────────────────────────┐
+│                                                        │
+│  STEP 1: ADMIN LOGIN                                   │
+│  ├─ Connect wallet (super admin address)               │
+│  ├─ Dashboard loads → Admin panel                      │
+│  └─ Full system visibility                             │
+│                                                        │
+│  STEP 2: USER MANAGEMENT                               │
+│  ├─ Section: "Users & Permissions"                     │
+│  ├─ See all registered users:                          │
+│  │  ├─ Cipla Mumbai (Manufacturer)                     │
+│  │  ├─ MotilalOswal Pharma (Distributor)               │
+│  │  ├─ FastHaul Services (Transporter)                 │
+│  │  ├─ City Pharmacy (Retailer)                        │
+│  │  └─ More...                                         │
+│  │                                                     │
+│  ├─ For each user:                                     │
+│  │  ├─ [Approve] [Suspend] [View Details]              │
+│  │  ├─ Check: Licenses verified                        │
+│  │  ├─ Check: Insurance confirmed                      │
+│  │  └─ Check: Background check passed                  │
+│  │                                                     │
+│  └─ Can add/remove users from system                   │
+│                                                        │
+│  STEP 3: REAL-TIME MONITORING                          │
+│  ├─ Dashboard shows live transactions                  │
+│  ├─ Transaction feed:                                  │
+│  │  ├─ Block #1: BatchCreated (Cipla)                  │
+│  │  │  └─ Time: 2024-12-01 10:00 AM                    │
+│  │  ├─ Block #2: BatchTransferred (Cipla→Moitlal)      │
+│  │  │  └─ Time: 2024-12-08 10:00 AM                    │
+│  │  ├─ Block #3: DistributorAcceptedBatch              │
+│  │  │  └─ Time: 2024-12-08 10:30 AM                    │
+│  │  └─ More blocks appearing in real-time              │
+│  │                                                     │
+│  ├─ Can filter by:                                     │
+│  │  ├─ Actor (manufacturer, distributor, etc)          │
+│  │  ├─ Block type (BatchCreated, Transferred, etc)     │
+│  │  ├─ Date range                                      │
+│  │  └─ Status                                          │
+│  │                                                     │
+│  └─ Click any block for details                        │
+│                                                        │
+│  STEP 4: TEMPERATURE MONITORING                        │
+│  ├─ Section: "Temperature Alerts"                      │
+│  ├─ Alerts if temperature breaches detected            │
+│  ├─ Shows:                                             │
+│  │  ├─ Shipment ID                                     │
+│  │  ├─ Temperature recorded: 28°C (breach!)            │
+│  │  ├─ Safe range: 15-25°C                             │
+│  │  ├─ Location & time                                 │
+│  │  └─ Action: [Investigate] [Alert Parties]           │
+│  │                                                     │
+│  ├─ Can contact transporter immediately                │
+│  └─ System logs all alerts immutably                   │
+│                                                        │
+│  STEP 5: COMPLIANCE REPORTING                          │
+│  ├─ Section: "Compliance & Reports"                    │
+│  ├─ Generate reports for:                              │
+│  │  ├─ FSSAI (food traceability)                       │
+│  │  ├─ CDSCO (drug verification)                       │
+│  │  ├─ Ministry of Commerce                            │
+│  │  └─ Internal audits                                 │
+│  │                                                     │
+│  ├─ Reports include:                                   │
+│  │  ├─ Total batches created                           │
+│  │  ├─ Verified shipments                              │
+│  │  ├─ Temperature compliance                          │
+│  │  ├─ Zero counterfeits detected                      │
+│  │  └─ Certification & signatures                      │
+│  │                                                     │
+│  ├─ Download formats: PDF, CSV, Excel                  │
+│  └─ Email directly to regulators                       │
+│                                                        │
+│  STEP 6: DISPUTE RESOLUTION                            │
+│  ├─ Section: "Disputes & Issues"                       │
+│  ├─ If pharmacy detects issue:                         │
+│  │  ├─ Fake batch detected                             │
+│  │  ├─ Temperature breach occurred                     │
+│  │  ├─ Seal tampering identified                       │
+│  │  └─ Late delivery                                   │
+│  │                                                     │
+│  ├─ Dispute logged with:                               │
+│  │  ├─ Details of issue                                │
+│  │  ├─ Photos/evidence                                 │
+│  │  ├─ Blockchain reference blocks                     │
+│  │  └─ Claims amount                                   │
+│  │                                                     │
+│  ├─ Admin investigates:                                │
+│  │  ├─ Check blockchain records                        │
+│  │  ├─ Review all blocks involved                      │
+│  │  ├─ Determine responsible party                     │
+│  │  └─ Calculate compensation                          │
+│  │                                                     │
+│  └─ Implement resolution                               │
+│                                                        │
+│  STEP 7: ANALYTICS & INSIGHTS                          │
+│  ├─ System-wide KPIs displayed                         │
+│  ├─ Metrics:                                           │
+│  │  ├─ Total transactions: 10,000+                     │
+│  │  ├─ Total blocks created: 50,000+                   │
+│  │  ├─ Average block time: 2 seconds                   │
+│  │  ├─ Temperature breaches: 0                         │
+│  │  ├─ Counterfeits detected: 0                        │
+│  │  ├─ On-time delivery rate: 98.5%                    │
+│  │  └─ User satisfaction: 4.9/5                        │
+│  │                                                     │
+│  ├─ Charts showing:                                    │
+│  │  ├─ Transaction volume over time                    │
+│  │  ├─ Most active sectors                             │
+│  │  ├─ Geographic distribution                        │
+│  │  └─ Performance trends                              │
+│  │                                                     │
+│  └─ Export data for analysis                           │
+│                                                        │
+│  STEP 8: SECURITY & AUDITS                             │
+│  ├─ Section: "Security & Audits"                       │
+│  ├─ View all transactions                              │
+│  ├─ Verify blockchain integrity                        │
+│  ├─ Check for anomalies:                               │
+│  │  ├─ Double-spending attempts                        │
+│  │  ├─ Invalid signatures                              │
+│  │  ├─ Out-of-order blocks                             │
+│  │  └─ Tampered records                                │
+│  │                                                     │
+│  ├─ Run integrity check:                               │
+│  │  ├─ [Verify All Blocks] button                      │
+│  │  ├─ System validates every block                    │
+│  │  ├─ Checks cryptographic signatures                 │
+│  │  └─ Reports: ✓ All blocks valid                     │
+│  │                                                     │
+│  ├─ Audit trail:                                       │
+│  │  ├─ Who accessed what, when                         │
+│  │  ├─ All admin actions logged                        │
+│  │  └─ Cannot be altered                               │
+│  │                                                     │
+│  └─ Generate audit certificate                        │
+│                                                        │
+│  STEP 9: BLOCKCHAIN MANAGEMENT                         │
+│  ├─ Section: "Blockchain Control"                      │
+│  ├─ For technical admins only                          │
+│  ├─ Can:                                               │
+│  │  ├─ Check network status                            │
+│  │  ├─ View connected nodes                            │
+│  │  ├─ Upgrade smart contract (via vote)              │
+│  │  └─ Emergency pause (if needed)                     │
+│  │                                                     │
+│  ├─ Network status:                                    │
+│  │  ├─ Nodes online: 50                                │
+│  │  ├─ Gas price: Low                                  │
+│  │  ├─ Network health: ✓ Excellent                     │
+│  │  └─ Last block: #1234789                            │
+│  │                                                     │
+│  └─ All changes require multi-sig approval              │
+│                                                        │
+│  STEP 10: SYSTEM CONFIGURATION                         │
+│  ├─ Section: "Settings & Configuration"                │
+│  ├─ Configure:                                         │
+│  │  ├─ Temperature ranges per sector                   │
+│  │  ├─ SLA thresholds                                  │
+│  │  ├─ Alert rules                                     │
+│  │  ├─ Pricing models                                  │
+│  │  └─ Email notifications                             │
+│  │                                                     │
+│  └─ Can update without restarting                      │
+│                                                        │
+└────────────────────────────────────────────────────────┘
+```
+
+---
+
+# SECTION 7: EXECUTION IMPLEMENTATION GUIDE
+
+## 7.1 Development Roadmap (12 Weeks)
+
+### Week 1-2: Setup & Architecture
+```
+Day 1-3: Environment Setup
+├─ Install Node.js, git, VS Code
+├─ Set up GitHub repository
+├─ Create project directory structure
+└─ Initialize npm projects (backend, frontend)
+
+Day 4-5: Blockchain Setup
+├─ Install Hardhat
+├─ Connect to Sepolia testnet
+├─ Get free test ETH from faucet
+└─ Test deployment
+
+Day 6-7: Database Setup
+├─ Create MongoDB Atlas account (free)
+├─ Set up database collections
+├─ Design schema for users, batches, shipments
+└─ Test connections
+
+Day 8-10: Backend Initialization
+├─ Express.js server setup
+├─ Authentication middleware
+├─ API route structure
+└─ Error handling
+
+Day 11-14: Frontend Initialization
+├─ Create React app
+├─ Install dependencies (ethers, web3modal)
+├─ Setup routing
+└─ Component structure
+```
+
+### Week 3-4: Smart Contracts Development
+```
+Day 15-17: Write VerifyChain Smart Contract
+├─ Batch struct definition
+├─ Block struct definition
+├─ Create batch function
+├─ Transfer batch function
+└─ Event logging
+
+Day 18-19: Testing Smart Contract
+├─ Write test cases (Hardhat)
+├─ Test all functions
+├─ Check gas usage
+└─ Deploy to testnet
+
+Day 20-21: Smart Contract Documentation
+├─ Add comments to code
+├─ Create README
+└─ Document function signatures
+```
+
+### Week 5-6: Backend API Development
+```
+Day 22-24: User Management API
+├─ POST /api/register (create user)
+├─ POST /api/login (authenticate)
+├─ GET /api/users (list users)
+├─ PUT /api/users/:id (update user)
+└─ DELETE /api/users/:id (remove user)
+
+Day 25-26: Batch Management API
+├─ POST /api/batch/create
+├─ GET /api/batch/:id
+├─ PUT /api/batch/transfer
+├─ GET /api/batch/:id/history
+└─ GET /api/batches (list all)
+
+Day 27-28: Shipment Management API
+├─ POST /api/shipment/create
+├─ GET /api/shipment/:id
+├─ PUT /api/shipment/accept
+├─ PUT /api/shipment/complete
+└─ GET /api/shipments (list)
+
+Day 29-31: Integration with Blockchain
+├─ Connect ethers.js to smart contract
+├─ Call smart contract from API
+├─ Handle transaction responses
+└─ Error handling for failed transactions
+
+Day 32-35: Database Layer
+├─ Create MongoDB models
+├─ Implement CRUD operations
+├─ Add validation
+└─ Add indexes for performance
+```
+
+### Week 7-8: Frontend Development
+```
+Day 36-38: Authentication & Wallet Connection
+├─ MetaMask integration
+├─ Wallet connection UI
+├─ JWT token handling
+├─ Session management
+└─ Logout functionality
+
+Day 39-41: Manufacturer Dashboard
+├─ Create batch form
+├─ Batch list view
+├─ Batch tracking
+├─ Analytics charts
+└─ Export reports
+
+Day 42-44: Distributor Dashboard
+├─ Pending acceptance view
+├─ Accept batch form
+├─ Create shipment wizard
+├─ Shipment tracking
+└─ Warehouse inventory view
+
+Day 45-47: Transporter Dashboard
+├─ Pickup confirmation
+├─ Live tracking map
+├─ Temperature logging form
+├─ Delivery completion
+└─ Performance dashboard
+
+Day 48-49: Pharmacy Dashboard
+├─ Incoming delivery view
+├─ Accept delivery form
+├─ Inventory management
+├─ Dispensing interface
+└─ Blockchain journey view
+
+Day 50-52: Public Verification
+├─ QR code scanning interface
+├─ Public blockchain verification page
+├─ No-login required UI
+└─ Authenticity badge display
+```
+
+### Week 9-10: Integration & Testing
+```
+Day 53-55: End-to-End Testing
+├─ Test batch creation flow
+├─ Test batch transfer
+├─ Test distributor acceptance
+├─ Test shipment creation
+├─ Test transporter pickup
+├─ Test temperature logging
+├─ Test delivery completion
+├─ Test pharmacy acceptance
+└─ Test dispensing
+
+Day 56-57: Bug Fixes
+├─ Fix any failing tests
+├─ Improve error messages
+├─ Optimize performance
+└─ UI/UX improvements
+
+Day 58-60: Security Testing
+├─ Test authentication
+├─ Test authorization
+├─ Test input validation
+├─ Test role-based access
+└─ Penetration testing (basic)
+
+Day 61-62: Performance Testing
+├─ Load testing
+├─ Database query optimization
+├─ API response times
+└─ Blockchain gas optimization
+```
+
+### Week 11-12: Deployment & Documentation
+```
+Day 63-65: Deploy Backend
+├─ Deploy to Render.com (free tier)
+├─ Configure environment variables
+├─ Test all APIs in production
+└─ Set up monitoring
+
+Day 66-67: Deploy Frontend
+├─ Build React app
+├─ Deploy to Vercel (free)
+├─ Configure domain
+└─ Test all features
+
+Day 68-70: Deployment Documentation
+├─ Create README.md
+├─ Document API endpoints
+├─ Create deployment guide
+└─ Create user manual
+
+Day 71-72: Final Testing & Launch
+├─ Full system testing
+├─ User acceptance testing
+├─ Launch announcement
+└─ Support setup
+```
+
+## 7.2 Code Structure
+
+```
+verifychian/
+├── smart-contracts/
+│   ├── contracts/
+│   │   └── VerifyChain.sol
+│   ├── test/
+│   │   └── VerifyChain.test.js
+│   ├── hardhat.config.js
+│   ├── package.json
+│   └── .env
+│
+├── backend/
+│   ├── routes/
+│   │   ├── auth.js
+│   │   ├── batch.js
+│   │   ├── shipment.js
+│   │   ├── user.js
+│   │   └── verification.js
+│   ├── controllers/
+│   │   ├── authController.js
+│   │   ├── batchController.js
+│   │   ├── shipmentController.js
+│   │   └── userController.js
+│   ├── models/
+│   │   ├── User.js
+│   │   ├── Batch.js
+│   │   ├── Shipment.js
+│   │   └── Transaction.js
+│   ├── middleware/
+│   │   ├── auth.js
+│   │   └── errorHandler.js
+│   ├── services/
+│   │   ├── blockchain.js
+│   │   └── blockchain.js
+│   ├── server.js
+│   ├── package.json
+│   └── .env
+│
+├── frontend/
+│   ├── src/
+│   │   ├── pages/
+│   │   │   ├── ManufacturerDashboard.jsx
+│   │   │   ├── DistributorDashboard.jsx
+│   │   │   ├── TransporterDashboard.jsx
+│   │   │   ├── PharmacyDashboard.jsx
+│   │   │   ├── AdminDashboard.jsx
+│   │   │   └── PublicVerification.jsx
+│   │   ├── components/
+│   │   │   ├── Header.jsx
+│   │   │   ├── Navigation.jsx
+│   │   │   ├── Modal.jsx
+│   │   │   ├── Form.jsx
+│   │   │   └── Charts.jsx
+│   │   ├── services/
+│   │   │   ├── api.js
+│   │   │   └── blockchain.js
+│   │   ├── utils/
+│   │   │   ├── web3.js
+│   │   │   └── helpers.js
+│   │   ├── App.jsx
+│   │   ├── index.jsx
+│   │   └── App.css
+│   ├── package.json
+│   └── .env
+│
+└── README.md
+```
+
+---
+
+# COMPLETE SYSTEM DESIGN SUMMARY
+
+## Unified Blockchain Network
+
+✅ **SINGLE blockchain shared by all companies**
+✅ **Role-based access control (RBAC)**
+✅ **Company-specific dashboards**
+✅ **NO separate chains per company**
+✅ **Immutable audit trail**
+✅ **Real-time tracking**
+✅ **Public verification (no login)**
+
+## Tech Stack
+
+✅ **Blockchain:** Ethereum Sepolia Testnet → Hyperledger Besu (later)
+✅ **Smart Contracts:** Solidity + Hardhat
+✅ **Backend:** Node.js + Express.js
+✅ **Database:** MongoDB
+✅ **Frontend:** React.js
+✅ **Wallet:** MetaMask
+✅ **Cost:** 100% FREE
+
+## Key Features
+
+✅ **Manufacturer:** Create batches, serialize, assign to distributors
+✅ **Distributor:** Accept batches, create shipments, assign transporters
+✅ **Transporter:** Pick up, track temperature, deliver packages
+✅ **Pharmacy:** Accept delivery, accept ownership, dispense to patients
+✅ **Public:** Verify authenticity via QR code (no login)
+✅ **Admin:** Monitor, verify, dispute resolution, compliance reporting
+
+## Blockchain Transactions
+
+Each action creates immutable block:
+- Block #1: BatchCreated
+- Block #2: BatchTransferred
+- Block #3: DistributorAcceptedBatch
+- Block #4: ShipmentCreatedByDistributor
+- Block #5-7: TemperatureLoggedByTransporter (multiple)
+- Block #8: TransportDeliveryCompletedByTransporter
+- Block #9: PharmacyAcceptedDelivery (OWNERSHIP TRANSFER)
+- Block #10: DispensingEventToPatient
+
+Complete supply chain → Immutable proof of authenticity
