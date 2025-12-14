@@ -1,6 +1,6 @@
 import React, { createContext, useState, useEffect } from 'react';
 import { ethers } from 'ethers';
-import { BLOCKCHAIN_RPC_URL, BLOCKCHAIN_ENABLED } from './config';
+import { BLOCKCHAIN_RPC_URL, BLOCKCHAIN_ENABLED } from '../config';
 
 // ==================== DEMO ADDRESSES (Hardhat local accounts) ====================
 export const ADDRESSES = {
