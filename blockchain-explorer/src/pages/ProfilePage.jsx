@@ -3,6 +3,7 @@ import {
     User, Building2, Search, Copy, Check, Shield, Briefcase,
     MapPin, Globe, Loader, Truck, ExternalLink
 } from 'lucide-react';
+import { API_BASE_URL } from '../config';
 import './ProfilePage.css';
 
 const ProfilePage = () => {
@@ -24,7 +25,7 @@ const ProfilePage = () => {
     const fetchProfile = async () => {
         try {
             const token = localStorage.getItem('vc_access_token');
-            const response = await fetch('http://localhost:5000/api/v1/auth/me', {
+            const response = await fetch(`${API_BASE_URL}/auth/me`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
@@ -52,7 +53,7 @@ const ProfilePage = () => {
         setSearching(true);
         try {
             const token = localStorage.getItem('token'); // Use auth token even for search
-            const response = await fetch(`http://localhost:5000/api/v1/organizations/search?q=${query}`, {
+            const response = await fetch(`${API_BASE_URL}/organizations/search?q=${query}`, {
                 // headers: { 'Authorization': `Bearer ${token}` } 
                 // Note: Search endpoint might not need auth if public, but good practice
             });

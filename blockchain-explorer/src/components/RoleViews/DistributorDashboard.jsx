@@ -2,6 +2,7 @@ import React, { useState, useContext, useEffect } from 'react';
 import { AppContext, ADDRESSES, ROLES } from '../../context/AppContext';
 import { Truck, Package, ArrowDown, Loader, CheckCircle, Send, User, Plus, TrendingUp, Clock, AlertTriangle } from "lucide-react";
 import { ShipmentAPI, OrgAPI } from '../../services/ApiService';
+import { API_BASE_URL } from '../../config';
 import PartnerSearch from '../Common/PartnerSearch';
 
 export default function DistributorDashboard() {
@@ -179,7 +180,7 @@ export default function DistributorDashboard() {
 
         // Fetch details from backend
         try {
-            const res = await fetch(`http://localhost:5000/api/v1/orgs/${org.orgId}/transporter-profile`);
+            const res = await fetch(`${API_BASE_URL}/orgs/${org.orgId}/transporter-profile`);
             const data = await res.json();
 
             if (data.success && data.data) {

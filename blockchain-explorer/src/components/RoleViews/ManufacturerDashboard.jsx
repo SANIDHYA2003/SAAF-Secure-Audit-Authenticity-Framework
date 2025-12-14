@@ -2,6 +2,7 @@ import React, { useState, useContext, useEffect } from 'react';
 import { AppContext, ADDRESSES, ROLES } from '../../context/AppContext';
 import { Package, Truck, Plus, Factory, ArrowRight, Loader, Users, CheckCircle, XCircle, TrendingUp, AlertCircle, Box, Activity } from "lucide-react";
 import { ShipmentAPI, OrgAPI } from '../../services/ApiService';
+import { API_BASE_URL } from '../../config';
 import PartnerSearch from '../Common/PartnerSearch';
 
 export default function ManufacturerDashboard() {
@@ -259,7 +260,7 @@ export default function ManufacturerDashboard() {
 
         // 2. Fetch Profile for Auto-fill
         try {
-            const res = await fetch(`http://localhost:5000/api/v1/orgs/${org.orgId}/transporter-profile`);
+            const res = await fetch(`${API_BASE_URL}/orgs/${org.orgId}/transporter-profile`);
             const data = await res.json();
 
             if (data.success && data.data) {

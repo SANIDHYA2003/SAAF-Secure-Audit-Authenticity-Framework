@@ -31,9 +31,35 @@ const PORT = process.env.PORT || 5000;
 // Security headers
 app.use(helmet());
 
-// CORS
+// CORS - Dynamic origin for Vercel deployments
+const allowedOrigins = [
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:5175',
+    'http://localhost:5176',
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:5174',
+    process.env.FRONTEND_URL
+].filter(Boolean);
+
 app.use(cors({
-    origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176', 'http://127.0.0.1:5173', 'http://127.0.0.1:5174', process.env.FRONTEND_URL].filter(Boolean),
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl)
+        if (!origin) return callback(null, true);
+
+        // Check if origin is in allowed list
+        if (allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        }
+
+        // Allow any Vercel preview URLs
+        if (origin.includes('.vercel.app')) {
+            return callback(null, true);
+        }
+
+        // Deny other origins
+        callback(new Error('Not allowed by CORS'));
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
@@ -211,13 +237,18 @@ app.use((err, req, res, next) => {
 
 // ==================== START SERVER ====================
 
-const startServer = async () => {
-    // Connect to database
-    await connectDB();
+// For Vercel serverless, we export the app without starting
+// For local development, we start the server
+const isVercel = process.env.VERCEL === '1' || process.env.VERCEL_ENV;
 
-    // Start listening
-    app.listen(PORT, () => {
-        console.log(`
+if (!isVercel) {
+    const startServer = async () => {
+        // Connect to database
+        await connectDB();
+
+        // Start listening
+        app.listen(PORT, () => {
+            console.log(`
 ╔═══════════════════════════════════════════════════════════╗
 ║                                                           ║
 ║   🚀 VerifyChain API Server                               ║
@@ -228,28 +259,33 @@ const startServer = async () => {
 ║   Health:   http://localhost:${PORT}/health                   ║
 ║                                                           ║
 ╚═══════════════════════════════════════════════════════════╝
-        `);
+            `);
+        });
+    };
+
+    // Handle uncaught exceptions
+    process.on('uncaughtException', (err) => {
+        console.error('Uncaught Exception:', err);
+        process.exit(1);
     });
-};
 
-// Handle uncaught exceptions
-process.on('uncaughtException', (err) => {
-    console.error('Uncaught Exception:', err);
-    process.exit(1);
-});
+    process.on('unhandledRejection', (reason, promise) => {
+        console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    });
 
-process.on('unhandledRejection', (reason, promise) => {
-    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-});
+    // Graceful shutdown
+    process.on('SIGTERM', async () => {
+        console.log('SIGTERM received. Shutting down gracefully...');
+        await mongoose.connection.close();
+        process.exit(0);
+    });
 
-// Graceful shutdown
-process.on('SIGTERM', async () => {
-    console.log('SIGTERM received. Shutting down gracefully...');
-    await mongoose.connection.close();
-    process.exit(0);
-});
-
-// Start the server
-startServer();
+    // Start the server
+    startServer();
+} else {
+    // For Vercel: Connect to DB on first request (lazy loading)
+    connectDB().catch(err => console.error('DB connection error:', err));
+}
 
 export default app;
+

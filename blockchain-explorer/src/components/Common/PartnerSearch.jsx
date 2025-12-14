@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search } from 'lucide-react';
+import { API_BASE_URL } from '../../config';
 import './PartnerSearch.css';
 
 const PartnerSearch = ({ type, placeholder, onSelect, initialValue = '' }) => {
@@ -32,7 +33,7 @@ const PartnerSearch = ({ type, placeholder, onSelect, initialValue = '' }) => {
         setIsOpen(true);
         try {
             // Build Query
-            let url = `http://localhost:5000/api/v1/orgs/search?q=${value}`;
+            let url = `${API_BASE_URL}/orgs/search?q=${value}`;
             if (type) url += `&type=${type}`;
 
             const response = await fetch(url);

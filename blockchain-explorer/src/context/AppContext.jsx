@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect } from 'react';
 import { ethers } from 'ethers';
+import { BLOCKCHAIN_RPC_URL, BLOCKCHAIN_ENABLED } from './config';
 
 // ==================== DEMO ADDRESSES (Hardhat local accounts) ====================
 export const ADDRESSES = {
@@ -37,9 +38,18 @@ export function AppContextProvider({ children, isDemoMode = true, currentRole = 
     const [address, setAddress] = useState('');
     const [loading, setLoading] = useState(false);
     const [blockchainError, setBlockchainError] = useState(null);
+    const [blockchainEnabled, setBlockchainEnabled] = useState(BLOCKCHAIN_ENABLED);
 
     // Initialize blockchain on mount - works for BOTH demo AND authenticated users
     useEffect(() => {
+        // Skip blockchain init if not enabled (for Vercel deployment without blockchain)
+        if (!BLOCKCHAIN_ENABLED) {
+            console.log('⚠️ Blockchain disabled - running in API-only mode');
+            setBlockchainError('Blockchain not configured - running in API-only mode');
+            setBlockchainEnabled(false);
+            return;
+        }
+
         // ALWAYS reset contract when role/org changes So that we re-initialize with correct signer
         setContract(null);
         initializeBlockchain().catch(err => {
@@ -51,7 +61,7 @@ export function AppContextProvider({ children, isDemoMode = true, currentRole = 
         setLoading(true);
         setBlockchainError(null);
         try {
-            const jsonProvider = new ethers.JsonRpcProvider('http://127.0.0.1:8545');
+            const jsonProvider = new ethers.JsonRpcProvider(BLOCKCHAIN_RPC_URL);
 
             // Test connection first
             await jsonProvider.getNetwork();
@@ -165,6 +175,7 @@ export function AppContextProvider({ children, isDemoMode = true, currentRole = 
         loading,
         isDemoMode,
         blockchainError,
+        blockchainEnabled,
         ADDRESSES,
         ROLES
     };
