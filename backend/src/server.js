@@ -42,35 +42,28 @@ const allowedOrigins = [
     process.env.FRONTEND_URL
 ].filter(Boolean);
 
-// CORS Configuration
-const corsOptions = {
-    origin: function (origin, callback) {
-        // Allow requests with no origin (like mobile apps or curl)
-        if (!origin) return callback(null, true);
+// Custom CORS Middleware for Vercel
+app.use((req, res, next) => {
+    const origin = req.headers.origin;
 
-        // Check if origin is in allowed list
-        if (allowedOrigins.includes(origin)) {
-            return callback(null, true);
-        }
+    // Check if origin is allowed
+    const isAllowed = allowedOrigins.includes(origin) || (origin && origin.includes('.vercel.app'));
 
-        // Allow any Vercel preview URLs
-        if (origin.includes('.vercel.app')) {
-            return callback(null, true);
-        }
+    if (isAllowed) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+    }
 
-        // Deny other origins
-        callback(new Error('Not allowed by CORS'));
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    optionsSuccessStatus: 200
-};
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
 
-app.use(cors(corsOptions));
+    // Handle preflight
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
 
-// Handle preflight requests explicitly with same options
-app.options('*', cors(corsOptions));
+    next();
+});
 
 // Rate limiting
 const limiter = rateLimit({
