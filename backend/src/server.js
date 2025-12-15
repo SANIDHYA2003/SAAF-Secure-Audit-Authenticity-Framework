@@ -42,7 +42,8 @@ const allowedOrigins = [
     process.env.FRONTEND_URL
 ].filter(Boolean);
 
-app.use(cors({
+// CORS Configuration
+const corsOptions = {
     origin: function (origin, callback) {
         // Allow requests with no origin (like mobile apps or curl)
         if (!origin) return callback(null, true);
@@ -63,12 +64,13 @@ app.use(cors({
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true,
-    optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
-}));
+    optionsSuccessStatus: 200
+};
 
-// Handle preflight requests explicitly
-app.options('*', cors());
+app.use(cors(corsOptions));
+
+// Handle preflight requests explicitly with same options
+app.options('*', cors(corsOptions));
 
 // Rate limiting
 const limiter = rateLimit({
