@@ -149,6 +149,26 @@ app.get('/health', (req, res) => {
     });
 });
 
+// DB Connection Middleware (Executed before routes to ensure Vercel connectivity)
+app.use(async (req, res, next) => {
+    // Skip for Health Check
+    if (req.path === '/health' || req.path === '/api/v1/health') return next();
+
+    try {
+        await connectDB();
+        next();
+    } catch (error) {
+        console.error("Critical DB Connection Error:", error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            details: 'Database connection failed',
+            uriStatus: process.env.MONGODB_URI ? 'Defined' : 'Missing (Check Vercel Env Vars)',
+            stack: error.stack
+        });
+    }
+});
+
 // API version prefix
 const API_PREFIX = '/api/v1';
 
