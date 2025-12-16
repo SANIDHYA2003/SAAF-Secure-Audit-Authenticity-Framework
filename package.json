@@ -2,7 +2,7 @@
   "name": "verifychain-monorepo",
   "type": "module",
   "engines": {
-    "node": "18.x"
+    "node": "20.x"
   },
   "scripts": {
     "build": "cd blockchain-explorer && npm install && npm run build"
